@@ -1,0 +1,26 @@
+project/
+├── main.py                # 애플리케이션의 진입점
+├── gui/                    # UI 관련 파일들
+│   ├── __init__.py         # 패키지 초기화 파일 (선택사항)
+│   ├── main_window.py      # 메인 윈도우 UI
+│   ├── video_widget.py     # 영상 표시 위젯
+│   ├── roi_editor.py       # ROI 설정 인터페이스
+│   └── log_viewer.py       # 로그 뷰어 UI
+├── detection/              # 객체 감지 관련 파일들
+│   ├── __init__.py         # 패키지 초기화 파일 (선택사항)
+│   ├── detector.py         # YOLO 모델 로딩 및 추론
+│   └── postprocessor.py    # 결과 후처리 (ROI 필터링, confidence threshold 등)
+├── recorder/               # 영상 녹화 및 저장 관련 파일들
+│   ├── __init__.py         # 패키지 초기화 파일 (선택사항)
+│   ├── video_buffer.py     # 영상 버퍼링 (±5초)
+│   └── saver.py            # 영상 저장 및 로그 연동
+├── utils/                  # 유틸리티 관련 파일들
+│   ├── __init__.py         # 패키지 초기화 파일 (선택사항)
+│   ├── metrics.py          # 성능 지표 및 F1-score 기록
+│   └── config.py           # 설정 파일 로드 및 경로 관리
+├── resources/              # 리소스 관련 파일들
+│   ├── icons/              # 아이콘 파일
+│   ├── models/             # 모델 파일들 (예: YOLO 모델 파일)
+│   ├── logs/               # 로그 파일
+│   └── videos/             # 저장된 영상 파일
+└── requirements.txt        # 프로젝트 의존성 파일 (선택사항)
