@@ -1,4 +1,7 @@
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QGridLayout, QPushButton, QLabel, QSizePolicy
+from PyQt5.QtWidgets import (
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+    QPushButton, QTabWidget, QSizePolicy, QLabel
+)
 from PyQt5.QtCore import Qt
 from gui.video_widget import VideoWidget
 from gui.roi_editor import ROIEditor
@@ -8,128 +11,203 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Forklift Detection")
-        self.resize(920, 720)  # 기본 크기 설정
+        self.resize(1200, 800)
 
-        # 중앙 위젯 설정 (전체 UI의 레이아웃)
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-
-        # 버티컬 레이아웃 (왼쪽 비디오, 오른쪽 UI)
         main_layout = QHBoxLayout(central_widget)
 
-        # [왼쪽] 비디오들 (Grid)
+        # [왼쪽] 비디오 레이아웃
         self.video_area = QWidget()
         self.video_layout = QGridLayout()
-        self.video_layout.setSpacing(10)
         self.video_area.setLayout(self.video_layout)
-
-        # 영상이 비율 유지하며 늘어나도록
         self.video_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         main_layout.addWidget(self.video_area, stretch=3)
-        
-        # 기본 레이아웃 설정 (1x1 그리드)
-        self.video_area.setLayout(self.video_layout)
-        main_layout.addWidget(self.video_area, stretch=3)
 
-        # [오른쪽] 기능 UI (카메라 토글 + 로그 + 종료)
+        # [오른쪽] 기능 UI
         self.ui_area = QWidget()
         ui_layout = QVBoxLayout()
         self.ui_area.setLayout(ui_layout)
         main_layout.addWidget(self.ui_area, stretch=1)
 
-        # 카메라 ON/OFF 버튼들
-        # camera_btn_layout = QGridLayout()
-        # camera_btn_layout
-        self.camera_buttons = []
-        self.active_cameras = []  # 활성화된 카메라 번호 저장
-        self.create_camera_buttons(ui_layout)
+        # 🔹 탭 위젯 추가
+        self.tab_widget = QTabWidget()
+        ui_layout.addWidget(self.tab_widget)
 
-        # 로그뷰어
-        self.log_viewer = LogViewer()
-        ui_layout.addWidget(self.log_viewer, stretch=1)
+        self.camera_buttons = {}
+        self.roi_reset_buttons = {}
+        self.active_cameras = []
+        self.video_widgets = {}
+        self.roi_editors = {} 
+        
+        self.init_tabs()
 
-        # 종료 버튼
+        # 로그 뷰어 및 종료 버튼
+        ui_layout.addWidget(LogViewer(), stretch=1)
         ui_layout.addWidget(QPushButton("종료"))
 
-        main_layout.addWidget(self.ui_area, stretch=1)
+    def init_tabs(self):
+        for tab_idx, cam_range in enumerate([(1, 3), (4, 6)]):  # Cam1 = 1~3, Cam2 = 4~6
+            tab = QWidget()
+            layout = QVBoxLayout()
+            tab.setLayout(layout)
 
-        # 비디오 위젯을 Grid에 배치
-        self.video_widgets = []
-        self.update_video_widgets()
+            for cam_id in range(cam_range[0], cam_range[1] + 1):
+                hbox = QHBoxLayout()
 
-        # ROI 오버레이 설정 (비디오 위젯에 대해 ROI 설정)
-        self.roi_editor1 = ROIEditor(self.video_widgets[0] if self.video_widgets else None)
-        self.roi_editor1.setAttribute(Qt.WA_TransparentForMouseEvents, False)
-        self.roi_editor1.roi_defined.connect(self.on_roi_defined)
-        self.roi_editor1.raise_()  # 비디오 위로 올리기
+                btn = QPushButton(f"{cam_id}번 카메라")
+                btn.setCheckable(True)
+                btn.clicked.connect(self.on_camera_toggle)
+                self.camera_buttons[cam_id] = btn
+                hbox.addWidget(btn)
 
-    def create_camera_buttons(self, ui_layout):
-        """카메라 버튼 생성 함수"""
-        for i in range(1, 10):  # 카메라 1번 ~ 9번 버튼
-            btn = QPushButton(f"{i}번 카메라")
-            btn.setCheckable(True)  # 버튼 클릭 시 체크되도록 설정
-            btn.clicked.connect(self.on_camera_button_clicked)
-            self.camera_buttons.append(btn)
-            ui_layout.addWidget(btn)
+                reset_btn = QPushButton("ROI 리셋")
+                reset_btn.clicked.connect(lambda _, cid=cam_id: self.reset_roi(cid))
+                self.roi_reset_buttons[cam_id] = reset_btn
+                hbox.addWidget(reset_btn)
 
-    def on_camera_button_clicked(self):
-        """카메라 버튼 클릭 시 활성화된 카메라 수에 맞게 레이아웃 변경"""
+                layout.addLayout(hbox)
+
+            self.tab_widget.addTab(tab, f"Cam{tab_idx + 1}")
+
+    def on_camera_toggle(self):
         button = self.sender()
-        camera_num = int(button.text().split('번')[0])  # "1번", "2번"에서 숫자 추출
+        cam_id = int(button.text().split("번")[0])
 
         if button.isChecked():
-            if camera_num not in self.active_cameras:
-                self.active_cameras.append(camera_num)
+            if cam_id not in self.active_cameras:
+                self.active_cameras.append(cam_id)
+
+                # 🔹 VideoWidget 생성
+                vw = VideoWidget(f"resources/videos/sample{cam_id}.avi")
+                self.video_widgets[cam_id] = vw
+
+                # 🔹 ROIEditor 생성 (VideoWidget 생성 이후)
+                roi_editor = ROIEditor(vw, cam_id)  # VideoWidget과 cam_id를 전달하여 ROIEditor 생성
+                roi_editor.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+                roi_editor.roi_defined.connect(self.on_roi_defined)
+                roi_editor.setParent(vw)
+                roi_editor.setGeometry(vw.rect())
+                roi_editor.show()
+                roi_editor.raise_()  # 비디오 위로 올림
+
+                # 저장
+                self.roi_editors[cam_id] = roi_editor  # cam_id를 키로 하여 roi_editor를 저장
+
+
         else:
-            if camera_num in self.active_cameras:
-                self.active_cameras.remove(camera_num)
+            if cam_id in self.active_cameras:
+                self.active_cameras.remove(cam_id)
 
-        self.update_video_widgets()  # 비디오 위젯 업데이트
+                # 🔹 VideoWidget 및 ROIEditor 제거
+                vw = self.video_widgets.pop(cam_id, None)
+                if vw:
+                    vw.setParent(None)
 
-    def update_video_widgets(self):
-        """활성화된 카메라 개수에 맞게 비디오 위젯과 레이아웃을 업데이트하는 함수"""
-        # 기존 비디오 위젯 제거
-        for widget in self.video_widgets:
-            widget.setParent(None)
-        self.video_widgets.clear()
+                roi_editor = self.roi_editors.pop(cam_id, None)
+                if roi_editor:
+                    roi_editor.setParent(None)
 
-        # 활성화된 카메라 수에 맞는 비디오 위젯 생성
-        for camera_num in self.active_cameras:
-            vw = VideoWidget(f"resources/videos/sample{camera_num}.avi")
-            self.video_widgets.append(vw)
-
-        # 그리드 레이아웃 업데이트
         self.update_grid_layout()
 
+
+    def reset_roi(self, cam_id):
+        # VideoWidget의 ROI 제거
+        vw = self.video_widgets.get(cam_id)
+        if vw:
+            vw.clear_roi()
+
+        # 기존 ROIEditor 제거
+        roi_editor = self.roi_editors.get(cam_id)
+        if roi_editor:
+            roi_editor.roi = None
+            roi_editor.points.clear()
+            roi_editor.finished = False
+            roi_editor.setParent(None)
+            roi_editor.deleteLater()
+            roi_editor.update()
+            del self.roi_editors[cam_id]
+
+        # 새로운 ROIEditor 생성 및 연결
+        new_editor = ROIEditor(vw, cam_id=cam_id)
+        new_editor.setParent(vw)
+        new_editor.setGeometry(vw.rect())
+        new_editor.show()
+        new_editor.raise_()
+        # new_editor.roi_defined.connect(self.on_roi_defined)
+        new_editor.roi_defined.connect(lambda polygon, cid=cam_id: self.on_roi_defined(cid, polygon))
+        new_editor.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+
+        self.roi_editors[cam_id] = new_editor
+
+        print(f"카메라 {cam_id} ROI 초기화됨 및 새 ROIEditor 생성됨")
+
+
     def update_grid_layout(self):
+        # 기존 레이아웃 제거
         for i in reversed(range(self.video_layout.count())):
             widget = self.video_layout.itemAt(i).widget()
             self.video_layout.removeWidget(widget)
             widget.setParent(None)
 
-        count = len(self.video_widgets)
+        count = len(self.active_cameras)
         if count == 0:
             return
 
-        cols = min(3, count)
+        cols = min(2, count)
         rows = (count + cols - 1) // cols
 
-        for idx, vw in enumerate(self.video_widgets):
+        for idx, cam_id in enumerate(sorted(self.active_cameras)):
             row = idx // cols
             col = idx % cols
-            self.video_layout.addWidget(vw, row, col)
-            vw.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            vw = self.video_widgets[cam_id]
 
+            self.video_layout.addWidget(vw, row, col)
+            # vw.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            self.adjust_video_size(vw)
+            
+            # ROIEditor 연결
+            roi_editor = ROIEditor(vw, cam_id)  # 카메라 ID 전달
+            roi_editor.setAttribute(Qt.WA_TransparentForMouseEvents, False)
+            roi_editor.roi_defined.connect(self.on_roi_defined)
+            roi_editor.setParent(vw)
+            roi_editor.setGeometry(vw.rect())
+            roi_editor.show()
+            roi_editor.raise_()  # 비디오 위로 올림
+    
         for r in range(rows):
             self.video_layout.setRowStretch(r, 1)
         for c in range(cols):
             self.video_layout.setColumnStretch(c, 1)
 
+    
+    
+    def adjust_video_size(self, vw):
+        # 비디오 영역 크기와 비율을 맞추기 위한 계산
+        video_rect = vw.rect()
+        video_width = 1280
+        video_height = 720
+        aspect_ratio = video_width / video_height
 
-    def on_roi_defined(self, polygon):
+        # 비디오 영역의 크기 비율에 맞게 크기 조정
+        if video_rect.width() / video_rect.height() > aspect_ratio:
+            # 가로가 더 긴 경우, 높이에 맞춰 너비를 조정
+            new_width = video_rect.height() * aspect_ratio
+            new_height = video_rect.height()
+        else:
+            # 세로가 더 긴 경우, 너비에 맞춰 높이를 조정
+            new_width = video_rect.width()
+            new_height = video_rect.width() / aspect_ratio
+
+        # 비디오 위젯 크기 조정
+        vw.setFixedSize(new_width, new_height)
+                
+
+    def on_roi_defined(self, polygon, cam_id):
         if len(polygon) < 3:
-            print("ROI는 최소 3개의 점이 필요합니다.")
+            print(f"카메라 {cam_id}에서 ROI는 최소 3개의 점이 필요합니다.")
             return
-        print("ROI 확정:", polygon)
-        for vw in self.video_widgets:
-            vw.set_roi(polygon)  # 모든 비디오 위젯에 ROI 설정
+        print(f"카메라 {cam_id} ROI 확정:", polygon)
+        vw = self.video_widgets.get(cam_id)
+        if vw:
+            vw.set_roi(polygon)  # 해당 카메라에 대한 ROI 설정

@@ -112,6 +112,11 @@ class VideoWidget(QLabel):
         self.video_saver.save_clip(frames=frame, event_time=event_time)  # 이벤트 시간을 save_clip에 전달
         self.video_saver.save_logs(event_time=event_time)  # 이벤트 시간을 save_clip에 전달
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, 'roi_editor'):
+            self.roi_editor.setGeometry(self.rect())
+        
     def closeEvent(self, event):
         self.cap.release()
         super().closeEvent(event)

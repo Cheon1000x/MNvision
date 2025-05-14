@@ -4,21 +4,17 @@ from PyQt5.QtCore import Qt, QPointF, pyqtSignal
 
 
 class ROIEditor(QWidget):
-    roi_defined = pyqtSignal(list)  # 최종 ROI 좌표를 외부에 전달하는 시그널
+    roi_defined = pyqtSignal(list, int)  # 추가된 부분: 카메라 ID를 포함한 시그널
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setMouseTracking(True)  # 마우스 추적
-        self.setAttribute(Qt.WA_TransparentForMouseEvents)  # 부모 위젯의 이벤트를 받게 하기 위해 설정
-
-        self.points = []  # 사용자 클릭 좌표들
+    def __init__(self, video_widget, cam_id):
+        super().__init__(video_widget)
+        self.video_widget = video_widget
+        self.cam_id = cam_id  # 카메라 ID 저장
+        self.points = []
         self.finished = False
-        self.temp_point = None  # 마우스 현재 위치
+        self.temp_point = None
 
     def mousePressEvent(self, event):
-        if self.finished:
-            return
-
         if event.button() == Qt.LeftButton:
             # 좌클릭으로 점을 추가
             pos = event.pos()
@@ -29,8 +25,9 @@ class ROIEditor(QWidget):
             # 우클릭 시 폴리곤을 확정
             self.finished = True
             polygon_coords = [(pt.x(), pt.y()) for pt in self.points]
-            self.roi_defined.emit(polygon_coords)  # ROI가 완성되면 시그널 전송
+            self.roi_defined.emit(polygon_coords, self.cam_id)  # 카메라 ID 포함하여 시그널 전송
             self.update()
+
 
     def mouseMoveEvent(self, event):
         if not self.finished:
@@ -42,7 +39,7 @@ class ROIEditor(QWidget):
         painter = QPainter(self)
         pen = QPen(Qt.red, 2)
         painter.setPen(pen)
-
+                    
         if self.points:
             # 점을 클릭해서 다각형을 만듦
             polygon = QPolygonF(self.points)
