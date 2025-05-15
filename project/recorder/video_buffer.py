@@ -6,7 +6,7 @@ import threading
 from collections import deque
 
 class VideoBuffer:
-    def __init__(self, max_seconds=5, fps=30):
+    def __init__(self, max_seconds=3, fps=30):
         self.fps = fps
         self.max_frames = max_seconds * fps
         self.buffer = deque(maxlen=self.max_frames * 2)  # ±5초니까 10초치 저장
@@ -24,6 +24,10 @@ class VideoBuffer:
 
         with self.lock:
             for timestamp, frame in list(self.buffer):
+                if not isinstance(timestamp, (float, int)):
+                    print(f"[ERROR] timestamp 타입 이상: {type(timestamp)}, 값: {timestamp}")
+                    continue
+            
                 if start_time <= timestamp <= end_time:
                     clip_frames.append(frame)
 

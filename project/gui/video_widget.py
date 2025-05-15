@@ -24,7 +24,7 @@ class VideoWidget(QLabel):
         self.postprocessor = PostProcessor(conf_threshold=0.6)
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
-        self.timer.start(30)  # 약 33ms = 30fps
+        self.timer.start(60)  # 약 33ms = 30fps
 
         # 비디오 버퍼와 저장 설정
         self.video_buffer = VideoBuffer(fps=30, max_seconds=5)
@@ -36,12 +36,10 @@ class VideoWidget(QLabel):
         self.roi = None
 
         # QLabel 생성
-        self.setAlignment(Qt.AlignCenter)
-        self.setScaledContents(True)
-        
         # 이미지 사이즈를 내려받기위해서 설정.
+        self.setScaledContents(True)
         self.setMinimumSize(10, 10)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.setAlignment(Qt.AlignCenter)  # 중앙 정렬로 영상 표시
 
     def set_roi(self, roi_points):
@@ -59,6 +57,9 @@ class VideoWidget(QLabel):
         widget_size = self.size()
         frame = cv2.resize(frame, (widget_size.width(), widget_size.height()))
         if ret:
+            # 영상 버퍼에 프레임 추가
+            self.video_buffer.add_frame(frame)
+            
             # 객체 감지
             results = self.detector.detect_objects(frame)
             filtered_objects = self.postprocessor.filter_results(results)
@@ -67,11 +68,9 @@ class VideoWidget(QLabel):
             for (x1, y1, x2, y2), conf, cls in filtered_objects:
                 if self.roi is not None and self.is_within_roi(x1, y1, self.roi):
                     print(frame.shape, frame.dtype)
-                    self.trigger_event(frame)  # 이벤트 처리 호출
+                    self.trigger_event(event_time=time.time())  # 이벤트 처리 호출
 
-            # 영상 버퍼에 프레임 추가
-            self.video_buffer.add_frame(frame)
-
+            
             # 객체 감지 결과 화면에 표시 (예시: 사각형 그리기)
             for (x1, y1, x2, y2), conf, cls in filtered_objects:
                 cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
@@ -103,20 +102,30 @@ class VideoWidget(QLabel):
         result = cv2.pointPolygonTest(roi, point, False)
         return result >= 0  # 양수이면 내부에 있음
 
-    def trigger_event(self, frame):
+    def trigger_event(self, event_time=None):
         """객체가 감지될 때 실행될 이벤트 처리 함수 (예: 로그 기록, 알람 등)"""
-        event_time = time.time()  # 현재 시간을 이벤트 시간으로 설정
+        event_time = time.time()  # 이건 여전히 기준
+        clip = self.video_buffer.get_clip(event_time)
+        self.video_saver.save_clip(frames=clip, event_time=event_time)
+
         print(f"ROI 내 객체 감지됨! 이벤트 시간: {event_time}")
-        print("frame", frame.dtype, frame.shape)
-        print("event_time", event_time)
-        self.video_saver.save_clip(frames=frame, event_time=event_time)  # 이벤트 시간을 save_clip에 전달
-        self.video_saver.save_logs(event_time=event_time)  # 이벤트 시간을 save_clip에 전달
+        print(f"[DEBUG] 추출된 프레임 수: {len(clip)}")
+        # if clip:
+        #     self.video_saver.save_clip(frames=clip, event_time=event_time)
+        # else:
+        #     print("[WARNING] 클립에 저장할 프레임이 없습니다.")
+
+        self.video_saver.save_logs(event_time=event_time)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         if hasattr(self, 'roi_editor'):
             self.roi_editor.setGeometry(self.rect())
         
+    # def closeEvent(self, event):
+    #     self.cap.release()
+    #     super().closeEvent(event)
     def closeEvent(self, event):
+        self.timer.stop()  # 타이머 멈춤
         self.cap.release()
         super().closeEvent(event)

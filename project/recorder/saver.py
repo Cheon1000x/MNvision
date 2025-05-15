@@ -24,7 +24,7 @@ class VideoSaver:
 
         print(f"[DEBUG] 저장할 영상 파일 경로: {save_video_path}")
         
-        height, width = frames[0].shape
+        height, width, _  = frames[0].shape
         print(f"[DEBUG] 프레임 크기: {height}x{width}")
         
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')

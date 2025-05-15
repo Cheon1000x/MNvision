@@ -15,7 +15,7 @@ class LogViewer(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(QLabel("Event Logs"))
         
-        self.setFixedSize(300, 420)
+        self.setFixedSize(400, 500)
         self.table = QTableWidget()
         self.table.setColumnCount(3)
         self.table.setHorizontalHeaderLabels(["Timestamp", "Event", "Play Video"])

@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtGui import QPainter, QPen, QPolygonF
 from PyQt5.QtCore import Qt, QPointF, pyqtSignal
-
+import datetime
 
 class ROIEditor(QWidget):
     roi_defined = pyqtSignal(list, int)  # 추가된 부분: 카메라 ID를 포함한 시그널
@@ -13,6 +13,7 @@ class ROIEditor(QWidget):
         self.points = []
         self.finished = False
         self.temp_point = None
+        self.now = datetime.datetime.now()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -36,6 +37,8 @@ class ROIEditor(QWidget):
             self.update()
 
     def paintEvent(self, event):
+        print(__class__.__name__)
+        print(f"{self.now.second}[DEBUG] paintEvent called for cam_id: {self.cam_id}, points: {self.points}" )
         painter = QPainter(self)
         pen = QPen(Qt.red, 2)
         painter.setPen(pen)
