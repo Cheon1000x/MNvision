@@ -7,12 +7,13 @@ from PyQt5.QtCore import Qt
 from gui.video_widget import VideoWidget
 from gui.roi_editor import ROIEditor
 from gui.log_viewer import LogViewer
+import time
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Forklift Detection")
-        self.resize(1680, 800)
+        self.resize(600, 800)
         
         self.active_cameras = []
         self.video_widgets = {}
@@ -78,7 +79,7 @@ class MainWindow(QMainWindow):
     def on_camera_toggle(self):
         button = self.sender()
         cam_id = int(button.text().split("번")[0])
-
+        
         if button.isChecked():
             if cam_id not in self.active_cameras:
                 self.active_cameras.append(cam_id)
@@ -89,10 +90,14 @@ class MainWindow(QMainWindow):
             if cam_id in self.active_cameras:
                 self.active_cameras.remove(cam_id)
                 self.remove_video_and_editor(cam_id)
-
         self.update_grid_layout()
 
     def reset_roi(self, cam_id):
+        """ 
+        roi 리셋 버튼을 눌렀을 시 작동하는 함수
+        video_widget의 clear_roi()
+        같은 cam_id의 roi_editors를 제거함
+        """
         vw = self.video_widgets.get(cam_id)
         if vw:
             vw.clear_roi()
@@ -124,29 +129,6 @@ class MainWindow(QMainWindow):
         if editor:
             editor.setParent(None)
             editor.deleteLater()
-
-    # def update_grid_layout(self):
-    #     for i in reversed(range(self.video_layout.count())):
-    #         widget = self.video_layout.itemAt(i).widget()
-    #         self.video_layout.removeWidget(widget)
-    #         widget.setParent(None)
-
-    #     cols = min(2, len(self.active_cameras))
-    #     for idx, cam_id in enumerate(sorted(self.active_cameras)):
-    #         row, col = divmod(idx, cols)
-    #         vw = self.video_widgets[cam_id]
-    #         self.video_layout.addWidget(vw, row, col)
-    #         self.adjust_video_size(vw)
-
-    #         editor = self.roi_editors.get(cam_id)
-    #         if editor:
-    #             editor.setParent(vw)
-    #             editor.setGeometry(vw.rect())
-    #             editor.show()
-    #             editor.raise_()
-
-    #         self.video_layout.setRowStretch(row, 1)
-    #         self.video_layout.setColumnStretch(col, 1)
 
     def update_grid_layout(self):
         # 기존 레이아웃 제거
@@ -224,9 +206,10 @@ class MainWindow(QMainWindow):
 
             vw.setMinimumSize(target_width, int(target_height))
             vw.setMaximumSize(16777215, 16777215)  # 최대 크기 제한 없음 (Qt.WA_Unlimited)
-            vw.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            vw.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         else:
             vw.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+
 
     def on_roi_defined(self, polygon, cam_id):
         if len(polygon) < 3:

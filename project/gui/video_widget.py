@@ -25,7 +25,8 @@ class VideoWidget(QLabel):
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(60)  # 약 33ms = 30fps
-
+        self.frame_count = 0
+        
         # 비디오 버퍼와 저장 설정
         self.video_buffer = VideoBuffer(fps=30, max_seconds=5)
 
@@ -58,7 +59,10 @@ class VideoWidget(QLabel):
         frame = cv2.resize(frame, (widget_size.width(), widget_size.height()))
         if ret:
             # 영상 버퍼에 프레임 추가
-            self.video_buffer.add_frame(frame)
+            self.video_buffer.add_frame(frame.copy())
+            self.frame_count += 1
+            if self.frame_count % 3 != 0:
+                return
             
             # 객체 감지
             results = self.detector.detect_objects(frame)

@@ -6,7 +6,7 @@ import threading
 from collections import deque
 
 class VideoBuffer:
-    def __init__(self, max_seconds=3, fps=30):
+    def __init__(self, max_seconds=3, fps=60):
         self.fps = fps
         self.max_frames = max_seconds * fps
         self.buffer = deque(maxlen=self.max_frames * 2)  # ±5초니까 10초치 저장
