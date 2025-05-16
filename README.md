@@ -1,22 +1,22 @@
-프로젝트 개요KDT7 기업 프로젝트 MN_VISION
+# KDT7 Enterprise Project MN_VISION
 
-* 중대 재해 처벌법 강화로 인한 제조산업 전반의 안전구역 관리 필요성 증대
-* 무겁거나 부피가 큰 자재를 이동할 때 필수로 사용되는 지게차의 작업공간 내 진입하는 작업자를 감지하기 위해 안전 라이트 커튼이 설치 운용하여 작업자의 안전을 관리
-* 통상적으로 지게차가 작업공간에 진입할 때, 지정된 영역 내 안전 라이트 커튼은 작동하지 않으며, 지게차 외 작업자의 침입을 감지하여 안전출력을 통해 제반 설비의 가동을 멈추도록 설계
-* 안전 라이트 커튼 센서는 투광기와 수광기가 서로 바라보고 있는 상태에서 광축의 입광 여부에 따라 물체를 감지하므로, 지게차와 작업자를 구분해내지 못하여 안전 출력의 오류를 발생시켜 작업효율을 낮추거나 안전 사고 위험도 증가
-* 시각데이터를 활용한 인공지능을 활용하여 작업 공간 내 진입하는 지게차와 작업자를 구분하는 솔루션 구축에 관한 프로젝트 진행
+## Project Overview
+* Increased need for safety zone management across manufacturing industries due to strengthened Serious Accident Punishment Act
+* Safety light curtains are installed and operated to detect workers entering the workspace of forklifts, which are essential for moving heavy or bulky materials, to manage worker safety
+* Typically, when a forklift enters the workspace, the safety light curtains in the designated area do not operate, but are designed to detect intrusion by workers other than forklifts and stop the operation of related equipment through safety output
+* Safety light curtain sensors detect objects based on whether the optical axis receives light when the transmitter and receiver are facing each other, so they cannot distinguish between forklifts and workers, causing safety output errors that lower work efficiency or increase safety accident risks
+* This project involves building a solution that uses artificial intelligence with visual data to distinguish between forklifts and workers entering the workspace
 
-✍️ 프로젝트 설명
+## Project Description
+Building an artificial intelligence model for a safety management solution using AI
 
-인공지능을 활용한 안전관리 솔루션 인공지능 모델 구축
+## Goals
+1. Build an artificial intelligence model for a safety management solution using AI
+2. Create presentation materials
+3. Third goal
 
-
-
-🎯 목표
-
-1. 인공지능을 활용한 안전관리 솔루션 인공지능 모델 구축
-2. 발표자료 작성
-3. 세 번째 목표
-
-👥 팀
-
+## Team
+* Woosung Cheon
+* Jeongwook Lee
+* Minwoo Kim
+* Juyeop Lee
