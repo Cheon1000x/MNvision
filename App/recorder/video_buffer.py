@@ -6,6 +6,10 @@ import threading
 from collections import deque
 
 class VideoBuffer:
+    """ 
+    영상 프레임을 받아놓고
+    이벤트 발생시 저장.
+    """
     def __init__(self, max_seconds=3, fps=60):
         self.fps = fps
         self.max_frames = max_seconds * fps

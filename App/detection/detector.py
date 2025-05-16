@@ -2,8 +2,8 @@ from ultralytics import YOLO
 import torch
 
 class Detector:
-    def __init__(self, model_path='resources/models/yolov8n.pt'):
-    # def __init__(self, model_path='resources/models/best.pt'):
+    # def __init__(self, model_path='resources/models/yolov8n.pt'):
+    def __init__(self, model_path='resources/models/best.pt'):
         # YOLOv8 모델 로드
         self.model = YOLO(model_path)
 

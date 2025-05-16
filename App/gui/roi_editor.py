@@ -4,6 +4,9 @@ from PyQt5.QtCore import Qt, QPointF, pyqtSignal
 import datetime
 
 class ROIEditor(QWidget):
+    """ 
+    ROI 영역을 그리고 확정하는 기능
+    """
     roi_defined = pyqtSignal(list, int)  # 추가된 부분: 카메라 ID를 포함한 시그널
 
     def __init__(self, video_widget, cam_id):

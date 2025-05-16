@@ -5,6 +5,9 @@ import os
 from datetime import datetime
 
 class VideoSaver:
+    """ 
+    이벤트 발생 시 영상과 기록을 저장하는 클래스
+    """
     def __init__(self, save_video_dir="resources/videos/", save_log_dir="resources/logs/", fps=30, log_viewer=None):
         self.save_video_dir = save_video_dir
         self.save_log_dir = save_log_dir

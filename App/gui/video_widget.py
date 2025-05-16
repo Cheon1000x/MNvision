@@ -13,6 +13,11 @@ from detection.postprocessor import PostProcessor
 from gui.log_viewer import LogViewer
 
 class VideoWidget(QLabel):
+    """ 
+    카메라 재생 객체
+    영상 재생과 roi 표기
+    
+    """
     def __init__(self, video_path="resources/videos/sample.avi"):
         super().__init__()
 
@@ -39,9 +44,10 @@ class VideoWidget(QLabel):
         # QLabel 생성
         # 이미지 사이즈를 내려받기위해서 설정.
         self.setScaledContents(True)
-        self.setMinimumSize(10, 10)
+       
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.setAlignment(Qt.AlignCenter)  # 중앙 정렬로 영상 표시
+        self.setMinimumSize(640,360)
 
     def set_roi(self, roi_points):
         """ROI 영역을 설정하는 메소드 (폴리곤 형식으로 받기)"""
@@ -50,16 +56,25 @@ class VideoWidget(QLabel):
         print(f"ROI 설정됨: {self.roi}")
 
     def clear_roi(self):
+        """ 
+        roi 객체 갱신
+        """
         self.roi = None
         self.update()
 
     def update_frame(self):
+        """ 
+        display_frame 전에 버퍼처리, 모델 상호작용
+        """
+        
         ret, frame = self.cap.read()
         widget_size = self.size()
         frame = cv2.resize(frame, (widget_size.width(), widget_size.height()))
         if ret:
             # 영상 버퍼에 프레임 추가
             self.video_buffer.add_frame(frame.copy())
+            
+            ## 성능문제로 3번쨰 프레임만 넣는중.
             self.frame_count += 1
             if self.frame_count % 3 != 0:
                 return
@@ -88,6 +103,11 @@ class VideoWidget(QLabel):
             self.display_frame(frame)
 
     def display_frame(self, frame):
+        """ 
+        영상 출력하기.
+        """
+        ## QLabel의 pixmap 사용함
+        
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb.shape
         bytes_per_line = ch * w
@@ -122,13 +142,14 @@ class VideoWidget(QLabel):
         self.video_saver.save_logs(event_time=event_time)
 
     def resizeEvent(self, event):
+        """ 
+        사이즈 변경시 호출되는 메서드
+        """
         super().resizeEvent(event)
         if hasattr(self, 'roi_editor'):
             self.roi_editor.setGeometry(self.rect())
         
-    # def closeEvent(self, event):
-    #     self.cap.release()
-    #     super().closeEvent(event)
+    
     def closeEvent(self, event):
         self.timer.stop()  # 타이머 멈춤
         self.cap.release()
