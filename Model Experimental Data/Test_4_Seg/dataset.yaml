@@ -1,0 +1,13 @@
+
+path: c:\Users\K\Desktop\Group_6\yolov8_dataset
+train: images/train
+val: images/val
+
+nc: 11
+names: ['forklift-vertical', 'forklift-left', 'forklift-right', 'forklift-horizontal', 'forklift-vertical(cam2)', 'forklift-left(cam2)', 'forklift-right(cam2)', 'forklift-horizontal(cam2)', 'person', 'object', '']
+
+# 세그멘테이션 및 학습 설정
+task: segment
+
+# 클래스 가중치 (희소 클래스에 더 높은 가중치)
+cls_weights: [30.00, 30.00, 1.00, 4.99, 1.00, 1.00, 1.00, 1.00, 1.00, 30.00]

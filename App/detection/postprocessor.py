@@ -12,9 +12,15 @@ class PostProcessor:
         """
         감지 결과 중 confidence가 thresholds 이상인 것만 남김
         """
+        # filtered = []
+        # print(detections)
+        # for (bbox, conf, cls, polygons) in detections:
+        #     print(conf)
+        #     if conf >= self.conf_threshold:
+        #         filtered.append((bbox, conf, cls, polygons))
+        # return filtered
         filtered = []
-        for (bbox, conf, cls) in detections:
-            if conf >= self.conf_threshold:
-                filtered.append((bbox, conf, cls))
+        for det in detections:
+            if det['conf'] >= self.conf_threshold:
+                filtered.append(det)
         return filtered
-

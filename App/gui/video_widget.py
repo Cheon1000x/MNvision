@@ -1,156 +1,226 @@
 from PyQt5.QtWidgets import QLabel, QSizePolicy
-from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QImage, QPixmap
-import cv2
-import os
-import numpy as np
-from datetime import datetime
-import time
+import cv2, os, time, numpy as np
 from recorder.video_buffer import VideoBuffer
 from recorder.saver import VideoSaver
 from detection.detector import Detector
 from detection.postprocessor import PostProcessor
 from gui.log_viewer import LogViewer
+from shapely.geometry import Polygon, box
+from utils.alert_manager import alert_manager
+
+class VideoThread(QThread):
+    frame_ready = pyqtSignal(np.ndarray)
+    event_triggered = pyqtSignal(float, str, float) ## event_time, label, iou
+    mute_triggered = pyqtSignal(str)
+    overlap_triggered = pyqtSignal(str)
+
+    def __init__(self, video_path, detector, postprocessor, video_buffer):
+        super().__init__()
+        self.cap = cv2.VideoCapture(video_path)
+        self.detector = detector
+        self.postprocessor = postprocessor
+        self.video_buffer = video_buffer
+        self.roi = None
+        self.running = True
+        self.frame_count = 0
+        
+        # 녹화 쿨타임 관리
+        self.cooldown_seconds = 5  # 쿨타임 10초s
+        self.last_event_time = 0
+
+    def can_trigger_event(self):
+        now = time.time()
+        if now - self.last_event_time > self.cooldown_seconds:
+            self.last_event_time = now
+            return True
+        return False
+    
+    def run(self):
+        while self.running:
+            ret, frame = self.cap.read()
+            if not ret:
+                break
+            self.frame_count += 1
+            self.video_buffer.add_frame(frame.copy())
+            if self.frame_count % 3 != 0:
+                continue
+
+            results = self.postprocessor.filter_results(self.detector.detect_objects(frame))
+
+            for det in results:
+                x1, y1, x2, y2 = det['box']
+                conf = det['conf']
+                class_name = det['class_name']
+                label = f"{class_name} {conf:.2f}"
+
+                if class_name == 'forklift_left':
+                    self.mute_triggered.emit(label)
+
+                # 시각화
+                if det.get('polygons'):
+                    color = (0, 255, 0) if class_name == 'person' else (205, 205, 0)
+                    for poly in det['polygons']:
+                        poly_np = np.array(poly, dtype=np.int32)
+                        cv2.polylines(frame, [poly_np], isClosed=True, color=color, thickness=2)
+                    cv2.putText(frame, label, (int(x1), int(y1) - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+                
+                ## 쿨타임 카운트
+                # print(self.roi)
+                if self.can_trigger_event():
+                    # ▶️ person-roi 간 IoU 계산 후 이벤트 발생
+                    person_roi_detected, person_roi_iou = self.check_person_roi_overlap(results)
+                    if person_roi_detected:
+                        alert_manager.on_alert_signal.emit("inroi")
+                        self.event_triggered.emit(time.time(), "person-roi overlap", person_roi_iou)
+
+                    # ▶️ person-forklift 간 IoU 계산 후 이벤트 발생
+                    overlap_detected, iou_val = self.check_person_forklift_overlap(results)
+                    if overlap_detected :
+                        alert_manager.on_alert_signal.emit("overlap")  # 신호(메시지)를 alert_manager에 보냄
+                        self.event_triggered.emit(time.time(), "person-forklift overlap", iou_val)
+
+            self.frame_ready.emit(frame)
+    
+    def compute_polygon_iou(polygon_roi, object_box):
+        """
+        polygon_roi: np.array of shape (N, 2) -> [[x1, y1], [x2, y2], ..., [xn, yn]]
+        object_box: list or tuple -> [x1, y1, x2, y2]
+        """
+        roi_poly = Polygon(polygon_roi)
+        obj_poly = box(*object_box)  # creates a rectangular polygon
+
+        if not roi_poly.is_valid or not obj_poly.is_valid:
+            return 0.0
+
+        inter_area = roi_poly.intersection(obj_poly).area
+        union_area = roi_poly.union(obj_poly).area
+
+        if union_area == 0:
+            return 0.0
+        return inter_area / union_area            
+
+    def set_roi(self, roi_points):
+        self.roi = np.array(roi_points, dtype=np.int32)
+
+    def stop(self):
+        self.running = False
+        self.cap.release()
+
+    @staticmethod
+    def calculate_iou(poly1, poly2):
+        poly1 = Polygon(poly1)
+        poly2 = Polygon(poly2)
+        if not poly1.is_valid or not poly2.is_valid:
+            return 0
+        inter = poly1.intersection(poly2).area
+        union = poly1.union(poly2).area
+        if union == 0:
+            return 0
+        return inter / union
+
+    def check_person_forklift_overlap(self, detections, iou_threshold=0.01):
+        person_polys = [Polygon(d['polygons'][0]) for d in detections if d['class_name'] == 'person']
+
+        forklift_polys = [Polygon(d['polygons'][0]) for d in detections
+                          if d['class_name'].startswith('forklift') and d.get('polygons')]
+
+        for p_poly in person_polys:
+            for f_poly in forklift_polys:
+                if not p_poly.is_valid or not f_poly.is_valid:
+                    continue
+                iou = self.calculate_iou(p_poly.exterior.coords, f_poly.exterior.coords)
+                if iou >= iou_threshold:
+                    print(f"⚠️ 위험 감지: person-forklift IoU = {iou:.2f}")
+                    return True, iou
+        return False, 0.0
+    
+    def check_person_roi_overlap(self, detections, iou_threshold=0.01):
+        person_polys = [Polygon(d['polygons'][0]) for d in detections if d['class_name'] == 'person']
+
+        roi_poly = Polygon(self.roi)
+        if not roi_poly.is_valid:
+            print("ROI 폴리곤이 유효하지 않습니다.")
+            return False, 0.0
+
+        for p_poly in person_polys:
+            if not p_poly.is_valid:
+                continue
+            iou = self.calculate_iou(p_poly.exterior.coords, roi_poly.exterior.coords)
+            if iou >= iou_threshold:
+                print(f"⚠️ 위험 감지: person-ROI IoU = {iou:.2f}")
+                return True, iou
+
+        return False, 0.0
+
 
 class VideoWidget(QLabel):
-    """ 
-    카메라 재생 객체
-    영상 재생과 roi 표기
-    
-    """
-    def __init__(self, video_path="resources/videos/sample.avi"):
+    def __init__(self, cam_num, video_path="resources/videos/sample.avi"):
         super().__init__()
-
         if not os.path.exists(video_path):
             raise FileNotFoundError(f"영상 파일을 찾을 수 없습니다: {video_path}")
 
-        self.cap = cv2.VideoCapture(video_path)
         self.detector = Detector()
         self.postprocessor = PostProcessor(conf_threshold=0.6)
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_frame)
-        self.timer.start(60)  # 약 33ms = 30fps
-        self.frame_count = 0
-        
-        # 비디오 버퍼와 저장 설정
         self.video_buffer = VideoBuffer(fps=30, max_seconds=5)
-
-        self.log_viewer = LogViewer()
-        self.video_saver = VideoSaver(save_video_dir="resources/videos", save_log_dir="resources/logs")
-
-        # 감지된 객체 목록과 ROI를 설정할 변수
+        self.video_saver = VideoSaver(cam_num=cam_num)
+        self.log_viewer = LogViewer(cam_num=cam_num)
         self.roi = None
 
-        # QLabel 생성
-        # 이미지 사이즈를 내려받기위해서 설정.
+        self.vthread = VideoThread(video_path, self.detector, self.postprocessor, self.video_buffer)
+        self.vthread.frame_ready.connect(self.display_frame)
+        self.vthread.event_triggered.connect(self.trigger_event)
+        self.vthread.start()
+
         self.setScaledContents(True)
-       
-        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        self.setAlignment(Qt.AlignCenter)  # 중앙 정렬로 영상 표시
-        self.setMinimumSize(640,360)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-    def set_roi(self, roi_points):
-        """ROI 영역을 설정하는 메소드 (폴리곤 형식으로 받기)"""
-        # 전달된 ROI를 numpy 배열로 변환하고, dtype을 np.int32로 설정
-        self.roi = np.array(roi_points, dtype=np.int32)
-        print(f"ROI 설정됨: {self.roi}")
+    def set_roi_editor(self, roi_editor):
+        """기존 ROIEditor 인스턴스를 등록함"""
+        self.roi_editor = roi_editor
 
+    def set_roi(self, roi):
+        """ROI 설정 및 기존 ROIEditor를 활용한 시각화"""
+        self.roi = np.array(roi, dtype=np.int32)
+        self.vthread.set_roi(roi)
+        
+        if hasattr(self, 'roi_editor') and self.roi_editor:
+            self.roi_editor.load_polygon(roi)  # 이미 만들어진 ROIEditor 활용
+            print(f"[VideoWidget] ROIEditor에 ROI 반영 완료: {roi}")
+    
     def clear_roi(self):
-        """ 
-        roi 객체 갱신
-        """
         self.roi = None
         self.update()
 
-    def update_frame(self):
-        """ 
-        display_frame 전에 버퍼처리, 모델 상호작용
-        """
-        
-        ret, frame = self.cap.read()
-        widget_size = self.size()
-        frame = cv2.resize(frame, (widget_size.width(), widget_size.height()))
-        if ret:
-            # 영상 버퍼에 프레임 추가
-            self.video_buffer.add_frame(frame.copy())
-            
-            ## 성능문제로 3번쨰 프레임만 넣는중.
-            self.frame_count += 1
-            if self.frame_count % 3 != 0:
-                return
-            
-            # 객체 감지
-            results = self.detector.detect_objects(frame)
-            filtered_objects = self.postprocessor.filter_results(results)
-
-            # ROI 내 감지된 객체가 있으면
-            for (x1, y1, x2, y2), conf, cls in filtered_objects:
-                if self.roi is not None and self.is_within_roi(x1, y1, self.roi):
-                    print(frame.shape, frame.dtype)
-                    self.trigger_event(event_time=time.time())  # 이벤트 처리 호출
-
-            
-            # 객체 감지 결과 화면에 표시 (예시: 사각형 그리기)
-            for (x1, y1, x2, y2), conf, cls in filtered_objects:
-                cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-
-            # ROI가 설정되어 있다면 폴리곤으로 표시
-            if self.roi is not None:
-                # ROI를 그리기 위해 polylines 사용
-                cv2.polylines(frame, [self.roi], isClosed=True, color=(255, 0, 0), thickness=2)
-
-            # 영상 표시
-            self.display_frame(frame)
-
     def display_frame(self, frame):
-        """ 
-        영상 출력하기.
-        """
-        ## QLabel의 pixmap 사용함
-        
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         h, w, ch = rgb.shape
-        bytes_per_line = ch * w
-        qimg = QImage(rgb.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        qimg = QImage(rgb.data, w, h, ch * w, QImage.Format_RGB888)
+        self.setPixmap(QPixmap.fromImage(qimg.scaled(self.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)))
 
-        # ✅ 비율 유지하여 QLabel 크기에 맞게 스케일 조절
-        scaled_qimg = qimg.scaled(
-            self.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
-        )
-        self.setPixmap(QPixmap.fromImage(scaled_qimg))
+    def trigger_event(self, event_time=None, label='event', iou=""):
+        # 이벤트 발생 시 영상 클립 저장 및 로그 저장
+        event_time = time.time()
+        clip = self.video_buffer.get_clip(event_time)
+        if iou:
+            self.video_saver.save_clip(frames=clip, event_time=event_time, label=label, iou=iou)
+            self.video_saver.save_logs(event_time=event_time, label=label, iou=iou)
+        else:    
+            self.video_saver.save_clip(frames=clip, event_time=event_time, label=label)
+            self.video_saver.save_logs(event_time=event_time, label=label)
+
 
     def is_within_roi(self, x, y, roi):
-        """주어진 점 (x, y)가 ROI 폴리곤 내부에 있는지 확인하는 함수"""
-        point = (x, y)
-        # OpenCV의 pointPolygonTest를 사용하여 점이 폴리곤 내에 있는지 확인
-        result = cv2.pointPolygonTest(roi, point, False)
-        return result >= 0  # 양수이면 내부에 있음
-
-    def trigger_event(self, event_time=None):
-        """객체가 감지될 때 실행될 이벤트 처리 함수 (예: 로그 기록, 알람 등)"""
-        event_time = time.time()  # 이건 여전히 기준
-        clip = self.video_buffer.get_clip(event_time)
-        self.video_saver.save_clip(frames=clip, event_time=event_time)
-
-        print(f"ROI 내 객체 감지됨! 이벤트 시간: {event_time}")
-        print(f"[DEBUG] 추출된 프레임 수: {len(clip)}")
-        # if clip:
-        #     self.video_saver.save_clip(frames=clip, event_time=event_time)
-        # else:
-        #     print("[WARNING] 클립에 저장할 프레임이 없습니다.")
-
-        self.video_saver.save_logs(event_time=event_time)
+        # 내부적으로 ROI 내 점 검사용 (필요 시 사용)
+        return cv2.pointPolygonTest(roi, (x, y), False) >= 0
 
     def resizeEvent(self, event):
-        """ 
-        사이즈 변경시 호출되는 메서드
-        """
-        super().resizeEvent(event)
         if hasattr(self, 'roi_editor'):
             self.roi_editor.setGeometry(self.rect())
-        
-    
+
     def closeEvent(self, event):
-        self.timer.stop()  # 타이머 멈춤
-        self.cap.release()
+        self.vthread.stop()
+        self.vthread.wait()
         super().closeEvent(event)

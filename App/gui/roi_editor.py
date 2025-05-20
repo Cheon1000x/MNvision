@@ -1,7 +1,6 @@
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtGui import QPainter, QPen, QPolygonF
 from PyQt5.QtCore import Qt, QPointF, pyqtSignal
-import datetime
 
 class ROIEditor(QWidget):
     """ 
@@ -11,27 +10,26 @@ class ROIEditor(QWidget):
 
     def __init__(self, video_widget, cam_id):
         super().__init__(video_widget)
-        self.video_widget = video_widget
         self.cam_id = cam_id  # 카메라 ID 저장
         self.points = []
         self.finished = False
         self.temp_point = None
-        self.now = datetime.datetime.now()
+        self.saved_polygon = None  # 확정된 ROI 폴리곤 저장용
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             # 좌클릭으로 점을 추가
-            pos = event.pos()
-            self.points.append(QPointF(pos))
+            self.points.append(QPointF(event.pos()))
             self.update()  # 화면 업데이트
 
         elif event.button() == Qt.RightButton and len(self.points) >= 3:
-            # 우클릭 시 폴리곤을 확정
+            # 우클릭으로 ROI 확정
             self.finished = True
+            self.temp_point = None
+            self.saved_polygon = self.points.copy()  # ROI 유지용 저장
             polygon_coords = [(pt.x(), pt.y()) for pt in self.points]
-            self.roi_defined.emit(polygon_coords, self.cam_id)  # 카메라 ID 포함하여 시그널 전송
+            self.roi_defined.emit(polygon_coords, self.cam_id)
             self.update()
-
 
     def mouseMoveEvent(self, event):
         if not self.finished:
@@ -40,29 +38,27 @@ class ROIEditor(QWidget):
             self.update()
 
     def paintEvent(self, event):
-        print(__class__.__name__)
-        print(f"{self.now.second}[DEBUG] paintEvent called for cam_id: {self.cam_id}, points: {self.points}" )
-        painter = QPainter(self)
-        pen = QPen(Qt.red, 2)
-        painter.setPen(pen)
-                    
-        if self.points:
-            # 점을 클릭해서 다각형을 만듦
-            polygon = QPolygonF(self.points)
-            if self.finished:
-                # 다각형이 완성되었으면 첫 점과 마지막 점을 연결하여 그린다.
-                polygon.append(self.points[0])  
-                painter.drawPolygon(polygon)
-            else:
-                # 다각형을 그리기 전에 폴리라인으로 점을 연결하고, 마우스를 이동하면서 그려지는 선
-                painter.drawPolyline(polygon)
-                if self.temp_point:
-                    painter.drawLine(self.points[-1], self.temp_point)
+        if not self.points:
+            return
 
-        # 점 찍기
+        painter = QPainter(self)
+        polygon = QPolygonF(self.saved_polygon if self.finished else self.points)
+
+        if not self.finished and self.temp_point:
+            # ROI 설정 중일 때 (마우스로 그릴 때)
+            painter.setPen(QPen(Qt.red, 2))
+            painter.drawPolyline(polygon)
+            painter.drawLine(self.points[-1], self.temp_point)
+        else:
+            # 확정된 ROI가 있으면 파란색 다각형 (닫힌 형태)
+            closed_polygon = polygon + QPolygonF([polygon[0]])
+            painter.setPen(QPen(Qt.blue, 2))
+            painter.drawPolygon(closed_polygon)
+
+        # 점도 항상 파란색으로 그림
         dot_pen = QPen(Qt.blue, 5)
         painter.setPen(dot_pen)
-        for pt in self.points:
+        for pt in polygon:
             painter.drawPoint(pt)
 
     def reset(self):
@@ -70,8 +66,19 @@ class ROIEditor(QWidget):
         self.points.clear()
         self.finished = False
         self.temp_point = None
+        self.saved_polygon = None  # 저장된 ROI도 초기화
         self.update()
 
     def get_polygon(self):
         """[(x1, y1), (x2, y2), ...] 형식으로 반환"""
         return [(pt.x(), pt.y()) for pt in self.points] if self.finished else None
+
+    def load_polygon(self, polygon_coords):
+        """
+        외부에서 ROI를 설정할 때 사용. [(x1, y1), (x2, y2), ...] 형식의 좌표 리스트
+        """
+        self.points = [QPointF(x, y) for x, y in polygon_coords]
+        self.saved_polygon = self.points.copy()
+        self.finished = True
+        self.temp_point = None
+        self.update()
