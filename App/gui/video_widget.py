@@ -54,7 +54,7 @@ class VideoThread(QThread):
             self.frame_count += 1
             self.video_buffer.add_frame(frame.copy())
 
-            if self.frame_count % 2 != 0:
+            if self.frame_count % 3 != 0:
                 continue
             # print('vt')
             # ROI 시각화 (디버깅용)
