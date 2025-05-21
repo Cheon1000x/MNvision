@@ -15,7 +15,7 @@ class ROIEditor(QWidget):
         self.finished = False
         self.temp_point = None
         self.saved_polygon = None  # 확정된 ROI 폴리곤 저장용
-
+        
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             # 좌클릭으로 점을 추가
@@ -77,6 +77,7 @@ class ROIEditor(QWidget):
         """
         외부에서 ROI를 설정할 때 사용. [(x1, y1), (x2, y2), ...] 형식의 좌표 리스트
         """
+        print('roi_e',[QPointF(x, y) for x, y in polygon_coords] )
         self.points = [QPointF(x, y) for x, y in polygon_coords]
         self.saved_polygon = self.points.copy()
         self.finished = True

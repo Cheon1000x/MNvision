@@ -5,7 +5,7 @@ class PostProcessor:
     예측값 처리.
     thresholds 설정.
     """
-    def __init__(self, conf_threshold=0.5):
+    def __init__(self, conf_threshold=0.3):
         self.conf_threshold = conf_threshold
 
     def filter_results(self, detections):

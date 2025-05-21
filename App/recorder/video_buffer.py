@@ -10,7 +10,7 @@ class VideoBuffer:
     영상 프레임을 받아놓고
     이벤트 발생시 저장.
     """
-    def __init__(self, max_seconds=3, fps=60):
+    def __init__(self, max_seconds=10, fps=30):
         self.fps = fps
         self.max_frames = max_seconds * fps
         self.buffer = deque(maxlen=self.max_frames * 2)  # ±5초니까 10초치 저장
@@ -24,15 +24,10 @@ class VideoBuffer:
     def get_clip(self, event_time, seconds_before=5, seconds_after=5):
         start_time = event_time - seconds_before
         end_time = event_time + seconds_after
+
         clip_frames = []
-
         with self.lock:
-            for timestamp, frame in list(self.buffer):
-                if not isinstance(timestamp, (float, int)):
-                    print(f"[ERROR] timestamp 타입 이상: {type(timestamp)}, 값: {timestamp}")
-                    continue
-            
+            for timestamp, frame in self.buffer:
                 if start_time <= timestamp <= end_time:
-                    clip_frames.append(frame)
-
+                    clip_frames.append(frame)  # or frame.copy() if needed
         return clip_frames

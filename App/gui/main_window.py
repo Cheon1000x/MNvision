@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (
 )
 import os, json
 from PyQt5.QtGui import QFont, QGuiApplication, QCursor
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 from gui.video_widget import VideoWidget
 from gui.roi_editor import ROIEditor
 from gui.log_viewer import LogViewer
@@ -47,7 +47,8 @@ class MainWindow(QMainWindow):
         ## UI 영역 설정
         self.ui_area = QWidget()
         ui_layout = QHBoxLayout(self.ui_area)
-        self.ui_area.setFixedSize(1920, 80)
+        # self.ui_area.setFixedSize(1920, 80)
+        self.ui_area.setFixedHeight(80)
         
         # self.ui_area.setStyleSheet("background-color: white;")
         self.ui_area.setContentsMargins(0,0,0,30)
@@ -144,6 +145,7 @@ class MainWindow(QMainWindow):
         if polygon:
             vw1.set_roi_editor(self.roi_editors[1])
             vw1.set_roi(polygon)
+            print('main_vw',polygon)
             
         info_area1 = QVBoxLayout()
         cam_info1 = QLabel(f"CAM 1 Logs {polygon}{(int((self.size.width()-10) * 0.5), int((self.size.width()-10) * 9/32))}")
@@ -221,8 +223,15 @@ class MainWindow(QMainWindow):
 
         self.log_viewers[1] = lv1
         self.log_viewers[2] = lv2
-        
+        vw1.vthread.event_triggered.connect(self.make_delayed_loader(lv1))
+        vw2.vthread.event_triggered.connect(self.make_delayed_loader(lv2))
 
+    def make_delayed_loader(self, log_viewer):
+        def loader(*args, **kwargs):
+            QTimer.singleShot(3000, lambda: log_viewer.loadLogs())
+        return loader
+
+    
     def reset_roi(self, cam_id):
         """ 
         roi 리셋 버튼을 눌렀을 시 작동하는 함수
@@ -260,20 +269,6 @@ class MainWindow(QMainWindow):
         editor.show()
         editor.raise_()
         self.roi_editors[cam_id] = editor
-
-    # def remove_video_and_editor(self, cam_id):
-    #     """ 
-    #     카메라 꺼질시 비디오와 에디터 객체 제거 메서드
-    #     """
-    #     vw = self.video_widgets.pop(cam_id, None)
-    #     if vw:
-    #         vw.setParent(None)
-
-    #     editor = self.roi_editors.pop(cam_id, None)
-    #     if editor:
-    #         editor.setParent(None)
-    #         editor.deleteLater()
-   
         
     def adjust_video_size(self, vw, parent_height, num_videos):
         """ 
@@ -347,3 +342,5 @@ class MainWindow(QMainWindow):
                 roi_editor = self.roi_editors.get(cam_id)
                 if roi_editor:
                     roi_editor.setGeometry(vw.rect())  # 위치 및 크기 재조정
+                if vw.vthread:
+                    vw.vthread.set_ui_size(new_width, new_height)

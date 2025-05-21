@@ -27,7 +27,7 @@ class AlertManager(QObject):
             self.is_playing = True
             pygame.mixer.init()
             pygame.mixer.music.load(sound_path+'/'+message+'.wav')
-            print(sound_path+message+'.wav')
+            print(sound_path+'/'+message+'.wav')
             pygame.mixer.music.play()
             while pygame.mixer.music.get_busy():
                 time.sleep(0.1)

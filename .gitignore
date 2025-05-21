@@ -2,3 +2,4 @@ test_tool
 _data
 App/resources/videos
 App/resources/models
+App/resources/logs
