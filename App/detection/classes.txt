@@ -1,0 +1,10 @@
+forklift-vertical
+forklift-left
+forklift-right
+forklift-horizontal
+forklift-vertical(cam2)
+forklift-left(cam2)
+forklift-right(cam2)
+forklift-horizontal(cam2)
+person
+object

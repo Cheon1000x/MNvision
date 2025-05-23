@@ -1,0 +1,43 @@
+<<<<<<< HEAD
+
+path: C:\Users\K\Desktop\Group_6
+train: images/train
+val: images/val
+
+nc: 11
+names: ['forklift-vertical', 'forklift-left', 'forklift-right', 'forklift-horizontal', 'forklift-vertical(cam2)', 'forklift-left(cam2)', 'forklift-right(cam2)', 'forklift-horizontal(cam2)', 'person', 'object', '']
+
+# ï¿½ï¿½ï¿½×¸ï¿½ï¿½ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½
+task: segment
+
+# Å¬ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ä¡ (ï¿½ï¿½ï¿½ Å¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ä¡)
+cls_weights: [30.00, 30.00, 1.00, 5.27, 30.00, 30.00, 30.00, 22.45, 1.00, 30.00]
+
+
+path: C:\Users\K\Desktop\Group_6
+train: images/train
+val: images/val
+
+nc: 11
+names: ['forklift-vertical', 'forklift-left', 'forklift-right', 'forklift-horizontal', 'forklift-vertical(cam2)', 'forklift-left(cam2)', 'forklift-right(cam2)', 'forklift-horizontal(cam2)', 'person', 'object', '']
+
+# ï¿½ï¿½ï¿½×¸ï¿½ï¿½ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½
+task: segment
+
+# Å¬ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ä¡ (ï¿½ï¿½ï¿½ Å¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ä¡)
+cls_weights: [30.00, 30.00, 1.00, 5.27, 30.00, 30.00, 30.00, 22.45, 1.00, 30.00]
+=======
+
+path: C:\Users\K\Desktop\Group_6
+train: images/train
+val: images/val
+
+nc: 11
+names: ['forklift-vertical', 'forklift-left', 'forklift-right', 'forklift-horizontal', 'forklift-vertical(cam2)', 'forklift-left(cam2)', 'forklift-right(cam2)', 'forklift-horizontal(cam2)', 'person', 'object', '']
+
+# ¼¼±×¸àÅ×ÀÌ¼Ç ¼³Á¤
+task: segment
+
+# Å¬·¡½º °¡ÁßÄ¡ (Èñ¼Ò Å¬·¡½º¿¡ ´õ ³ôÀº °¡ÁßÄ¡)
+cls_weights: [30.00, 30.00, 1.00, 5.27, 30.00, 30.00, 30.00, 22.45, 1.00, 30.00]
+>>>>>>> 93bbb41db9c4711833322ee6859a7d8ee4f26442
