@@ -16,9 +16,12 @@ project/
 │   └── saver.py            # 영상 저장 및 로그 연동
 ├── utils/                  # 유틸리티 관련 파일들
 │   ├── __init__.py         # 패키지 초기화 파일 (선택사항)
+│   ├── alert_manager.py    # 알람 재생
+│   ├── design.py           # ui 디자인 관련.
 │   ├── metrics.py          # 성능 지표 및 F1-score 기록
 │   └── config.py           # 설정 파일 로드 및 경로 관리
 ├── resources/              # 리소스 관련 파일들
+│   ├── etc/                # 알람음
 │   ├── icons/              # 아이콘 파일
 │   ├── models/             # 모델 파일들 (예: YOLO 모델 파일)
 │   ├── logs/               # 로그 파일
@@ -26,14 +29,20 @@ project/
 └── requirements.txt        # 프로젝트 의존성 파일 (선택사항)
 
 
+logs / models / videos 폴더 생성해야함
+models 안에 모델 존재해야함 (detector.py 에서 조정)
+videos 안에 sample1.avi / sample2.avi 있어야 함
+
 v1.0 다중 카메라 구현 
 이후 개발 방향
 2카메라 고정.
 지게차 인식 및 roi 지정 관련
 
 
-v2.0 진행중
+v1.1 
 2단 카메라 고정
+영상 저장 쿨타임 5초 인식도 5초 쿨타임임.
+필요하다면 분리 가능.
 roi 별도의 설정파일에 저장 및 시작할 때 로드.
 지게차 근처에 있을시(iou만족시) 알람음 재생
 roi 영역 내 있을 시 경보음 재생
@@ -44,3 +53,5 @@ forklift-left 인식시 mute-signal 발산
 2프레임마다 인식시 조금 느려짐
 
 모델 불완전 - 개선사항
+
+250522 1.1 종료 UI 개선위해 2.0 개발 시작

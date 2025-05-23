@@ -1,22 +1,88 @@
-# KDT7 Enterprise Project MN_VISION
+# 🏭 MN_VISION 프로젝트
 
-## Project Overview
-* Increased need for safety zone management across manufacturing industries due to strengthened Serious Accident Punishment Act
-* Safety light curtains are installed and operated to detect workers entering the workspace of forklifts, which are essential for moving heavy or bulky materials, to manage worker safety
-* Typically, when a forklift enters the workspace, the safety light curtains in the designated area do not operate, but are designed to detect intrusion by workers other than forklifts and stop the operation of related equipment through safety output
-* Safety light curtain sensors detect objects based on whether the optical axis receives light when the transmitter and receiver are facing each other, so they cannot distinguish between forklifts and workers, causing safety output errors that lower work efficiency or increase safety accident risks
-* This project involves building a solution that uses artificial intelligence with visual data to distinguish between forklifts and workers entering the workspace
+## 📋 프로젝트 개요
 
-## Project Description
-Building an artificial intelligence model for a safety management solution using AI
+산업현장에서 **중대재해처벌법** 강화로 안전구역 관리의 중요성이 높아지고 있습니다. 특히 무거운 자재를 운반하는 **지게차**는 작업 필수 장비이지만, 안전사고의 주요 원인이 되기도 합니다.
 
-## Goals
-1. Build an artificial intelligence model for a safety management solution using AI
-2. Create presentation materials
-3. Third goal
+현재 많은 제조 현장에서 **안전 라이트 커튼**을 설치하여 지게차 작업공간에 작업자가 들어오는 것을 감지하고 있습니다. 하지만 기존 시스템은 **지게차와 작업자를 구분하지 못하는 한계**가 있어 불필요한 작업 중단이나 안전 위험을 초래합니다.
 
-## Team
-* Woosung Cheon
-* Jeongwook Lee
-* Minwoo Kim
-* Juyeop Lee
+MN_VISION은 **AI 비전 기술**을 활용하여 지게차와 작업자를 정확히 구분하는 솔루션을 개발함으로써, 작업 효율성과 안전성을 동시에 향상시키는 것을 목표로 합니다.
+
+## 🎯 주요 목표
+
+- **AI 기반 안전관리 솔루션 구축**: 컴퓨터 비전을 활용한 객체 탐지/세그멘테이션 모델 개발
+- **높은 정확도의 객체 인식**: 지게차와 작업자를 정확하게 구분하는 AI 모델 구현
+- **실시간 처리 가능한 경량 모델**: 산업 현장에서 즉각적인 대응이 가능한 속도 보장
+- **다양한 환경 적응력**: 조명 변화, 각도 변화에도 안정적으로 작동하는 견고한 시스템
+
+## 🔍 문제 상황 분석
+
+### 현재 시스템의 한계
+
+현재 사용되는 안전 라이트 커튼 시스템은 다음과 같은 한계가 있습니다:
+
+1. **객체 구분 불가**: 광학 축이 감지하는 모든 물체에 반응하여 지게차와 작업자를 구분하지 못함
+2. **과도한 안전 출력**: 지게차가 정상적으로 진입해도 불필요하게 장비가 멈추는 상황 발생
+3. **작업 효율성 저하**: 빈번한 작업 중단으로 생산성 감소
+4. **안전 위험**: 잦은 오탐지로 실제 위험 상황에서 안전장치를 무시하게 되는 경향 발생
+
+### AI 기반 솔루션의 장점
+
+MN_VISION이 제공하는 AI 기반 솔루션은 다음과 같은 장점이 있습니다:
+
+1. **정확한 객체 구분**: 지게차와 작업자를 고정확도로 구분하여 불필요한 작업 중단 감소
+2. **상황에 맞는 안전 조치**: 실제 위험 상황에서만 안전 출력 작동
+3. **작업 효율성 향상**: 불필요한 작업 중단 감소로 생산성 증가
+4. **안전성 강화**: 실제 위험 상황에 더 신뢰할 수 있는 안전 시스템 구축
+
+## 💻 기술적 접근
+
+### 1. 데이터 수집 및 전처리
+
+- **데이터 수집**: 다양한 각도, 조명 조건에서의 지게차와 작업자 이미지 확보
+- **데이터 라벨링**: LabelMe 도구를 활용한 정확한 객체 라벨링
+- **데이터 증강**: 회전, 반전, 밝기 조절 등 다양한 기법을 통한 학습 데이터 다양화
+
+## 🔍 기술적 접근
+
+### 1. 모델 개발
+
+* **YOLOv8 기반 모델**: 객체 탐지와 세그멘테이션을 위한 최신 YOLOv8 아키텍처 활용
+* **데이터 불균형 처리**: 클래스 가중치 적용으로 희소 클래스에 대한 인식률 향상
+* **모델 최적화**: 경량화 및 성능 튜닝을 통한 실시간 처리 가능한 모델 구현
+
+### 2. 학습 및 검증
+
+* **교차 검증**: 다양한 환경에서의 모델 성능 검증
+* **성능 메트릭**: mAP, Precision, Recall 등 다양한 지표를 통한 성능 평가
+* **하이퍼파라미터 튜닝**: 최적의 학습 파라미터 도출
+
+### 3. 자동화 도구 개발
+
+* **자동 라벨링 도구**: 수집된 이미지에 대한 초기 라벨링 자동화
+* **모델 학습 파이프라인**: 데이터 전처리부터 모델 평가까지 일관된 워크플로우 구축
+
+## 🛠️ 주요 구현 내용
+
+### YOLOv8 기반 객체 탐지 모델 
+
+- 지게차와 작업자를 인식하는 기본 객체 탐지 모델 구현
+- 자동 데이터 증강 및 데이터셋 분할 기능 구현
+- 모델 학습 및 평가 파이프라인 구축
+
+### 자동 라벨링 도구 개발 
+
+- 수집된 이미지에 대한 초기 라벨링 자동화 도구 구현
+- 객체 탐지 및 세그멘테이션 결과를 LabelMe 형식으로 변환하는 기능
+- 카메라 유형별 특화된 라벨링 처리 지원
+
+## 👥 팀원 및 역할
+
+- **천우성**: 프로젝트 총괄, 모델 아키텍처 설계
+- **이정욱**: 데이터 전처리 및 증강, 모델 학습
+- **김민우**: 자동 라벨링 도구 개발, 성능 평가
+- **이주엽**: 세그멘테이션 모델 구현, 시각화 도구 개발
+
+## 💡 결론
+
+MN_VISION 프로젝트는 AI 비전 기술을 활용하여 제조 현장의 안전성과 효율성을 동시에 향상시키는 혁신적인 솔루션을 제공합니다. 지게차와 작업자를 정확히 구분함으로써, 불필요한 작업 중단은 줄이고 실제 위험 상황에서의 안전 조치는 강화하는 스마트 팩토리 구현의 핵심 요소가 될 것입니다.

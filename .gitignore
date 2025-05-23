@@ -3,3 +3,5 @@ _data
 App/resources/videos
 App/resources/models
 App/resources/logs
+*.zip
+App/*.zip

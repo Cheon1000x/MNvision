@@ -2,18 +2,25 @@ from ultralytics import YOLO
 import torch
 import numpy as np
 import cv2
+# from onnx_utils import ONNXProcessor
+from detection.onnx_utils import ONNXProcessor
 
 class Detector:
+    # def __init__(self, model_path='resources/models/yolov8_continued_seg_ver3.pt'):
     def __init__(self, model_path='resources/models/yolov8_seg_custom.pt'):
     # def __init__(self, model_path='resources/models/yolov8n.pt'):
     # def __init__(self, model_path='resources/models/yolov5n.pt'):
-    # def __init__(self, model_path='resources/models/best.pt'):
+    # def __init__(self, model_path='resources/models/best.onnx'):
         # YOLOv8 모델 로드
         self.model = YOLO(model_path)
         
         # YOLOv5n 모델 로드
         # self.model = torch.hub.load('ultralytics/yolov5', 'yolov5n', pretrained=True)  # yolov5n (nano) 모델 로드
         
+        # self.processor = ONNXProcessor(model_path, conf_threshold=0.5)
+        
+        # 이미지 예측
+                
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
         self.model.eval()
@@ -38,6 +45,7 @@ class Detector:
         
         ## yolo 8n 코드 polygon
         
+        # results = self.processor(frame)
         results = self.model.predict(frame, device=self.device, stream=False)[0]
         detections = []
 

@@ -3,12 +3,14 @@ from PyQt5.QtWidgets import (
     QPushButton, QTabWidget, QSizePolicy, QLabel, QGraphicsDropShadowEffect
 )
 import os, json
-from PyQt5.QtGui import QFont, QGuiApplication, QCursor
+from PyQt5.QtGui import QFont, QGuiApplication, QCursor, QIcon
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 from gui.video_widget import VideoWidget
 from gui.roi_editor import ROIEditor
 from gui.log_viewer import LogViewer
 import time
+from collections import Counter
+from utils import design
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -22,7 +24,7 @@ class MainWindow(QMainWindow):
         screen = QGuiApplication.primaryScreen()
         self.size = screen.availableGeometry()
         # self.resize(int(size.width() * 0.8), int(size.height() * 0.8))
-        self.setStyleSheet("background-color: #C0C0C0;")
+        self.setStyleSheet("background-color: #161616;")
         self.setWindowTitle("Forklift Detection")
         self.setMinimumSize(self.size.width(), self.size.height())
         # self.setMaximumSize(size.width(), size.height())
@@ -34,26 +36,14 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
         main_layout.setContentsMargins(0,0,0,0)
-
-
-        ## 비디오 영역
-        self.video_area = QWidget()
-        self.video_layout = QHBoxLayout()
-        self.video_layout.setContentsMargins(0,0,0,0)
-        self.video_area.setLayout(self.video_layout)
-        self.video_layout.setContentsMargins(0,0,0,0)
-        main_layout.addWidget(self.video_area)
-
+        
         ## UI 영역 설정
         self.ui_area = QWidget()
         ui_layout = QHBoxLayout(self.ui_area)
-        # self.ui_area.setFixedSize(1920, 80)
-        self.ui_area.setFixedHeight(80)
-        
-        # self.ui_area.setStyleSheet("background-color: white;")
-        self.ui_area.setContentsMargins(0,0,0,30)
-        main_layout.addWidget(self.ui_area)
-
+        self.ui_area.setFixedHeight(50)
+        self.ui_area.setStyleSheet("background-color: #161616;")
+        self.ui_area.setContentsMargins(0,0,0,0)
+        main_layout.addWidget(self.ui_area, alignment=Qt.AlignRight)
 
         self.btn_design = """
             background-color: 	#DCDCDC	;
@@ -69,26 +59,25 @@ class MainWindow(QMainWindow):
         
         self.btn_hover = """
             QPushButton {
-                background-color: 	#DCDCDC	;
-                color: #000000;
-                border-right: 5px solid #a0a0a0;
-                border-bottom: 5px solid #a0a0a0;
+                background-color: 	#000000	;
+                color: #fe8e52;
+                border: 1px solid #fe8e52;
                 border-radius: 5px;
                 font-size: 28px;
                 font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #696969;
-                color: #FFFFFF;
+                background-color: #4f3a2f;
+                border: 3px solid #fe8e52;
+                color: #fe8e52;
+                border-radius:5px;
             }
             QPushButton:pressed {
-                border-left: 5px solid #696969;
-                border-top: 5px solid #696969;
-                border-right: 0px solid #a0a0a0;
-                border-bottom: 0px solid #a0a0a0;
-                background-color: #696969;
-                color: #FFFFFF;
+                background-color: #fe8e52;
+                border: 3px solid #fe8e52;
+                color: #000000;
+                border-radius:5px;
             }
             
             
@@ -119,113 +108,208 @@ class MainWindow(QMainWindow):
         ui_layout.addWidget(start_btn)
         ui_layout.addWidget(config_btn)
         ui_layout.addWidget(exit_btn)
+        
+        ## 비디오 영역
+        self.video_area = QWidget()
+        self.video_layout = QHBoxLayout()
+        self.video_layout.setContentsMargins(60,0,60,60)
+        self.video_layout.setSpacing(80)
+        self.video_area.setLayout(self.video_layout)
+        
+        main_layout.addWidget(self.video_area)
 
-
+        
     def on_start(self):
         """ 
         시작시 cam의 vw, roi, log 생성
         """
         if self.video_widgets:
             return
-        ## cam1 설정
-        cam1 = QWidget()
-        cam1Layout = QVBoxLayout()  # ✅ 먼저 생성
-        cam1Layout.setContentsMargins(0, 0, 0, 0)
-        cam1Layout.setSpacing(0)
+        self.reset_timers = {}
+        self.spotlights = {}
+        self.onoff_labels = {}
+        self.event_labels = {}  # 캠별 info1, info2 레이블 저장용 딕셔너리
+        self.info_labels = {}  # 캠별 info3, info4 레이블 저장용 딕셔너리
 
-        cam1.setLayout(cam1Layout)  # ✅ 그다음 적용
-        # cam1.setStyleSheet("background-color: white;")  # ✅ 문제 없음
         
-        vw1 = VideoWidget(cam_num=1, video_path=f"resources/videos/sample1.avi")
-        vw1.setFixedSize(int((self.size.width()-10) * 0.5), int((self.size.width()-10) * 9/32))
-        self.video_widgets[1] = vw1
-        self.create_roi_editor(1, vw1) # self.roi_editors[1]에 저장됨.
-        
-        polygon = self.load_roi_from_file(1) # roi 정보 불러옴.
-        if polygon:
-            vw1.set_roi_editor(self.roi_editors[1])
-            vw1.set_roi(polygon)
-            print('main_vw',polygon)
+        for cam_id in range(1, 3):  # CAM 1과 CAM 2
+            cam_widget = QWidget()
+            cam_layout = QVBoxLayout()
+            cam_layout.setContentsMargins(20, 0, 20, 0)
+            cam_layout.setSpacing(0)
+            cam_widget.setLayout(cam_layout)
+
+            # CAM 이름 버튼
+            cam_name_btn = QPushButton(f"CAM {cam_id}")
+            cam_name_btn.setEnabled(False)
+            cam_name_btn.setStyleSheet("""
+                QPushButton {
+                    border-bottom: none;
+                    border-top-left-radius: 10px;
+                    border-top-right-radius: 10px;
+                    background-color: #000000;
+                    color: #ADFF2F;
+                    font-size: 28px;
+                    font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
+                    font-weight: bold;
+                }
+            """)
+            cam_name_btn.setFixedWidth(150)
+            cam_layout.addWidget(cam_name_btn)
+
+            # 비디오 위젯
+            vw = VideoWidget(cam_num=cam_id, video_path=f"resources/videos/sample{cam_id}.avi")
+            vw.setFixedSize(int((self.size.width()-120) * 0.5), int((self.size.width()-120) * 9/32))
+            vw.setStyleSheet("border: 2px solid #000000;")
+            self.video_widgets[cam_id] = vw
+
+            self.create_roi_editor(cam_id, vw)
+            polygon = self.load_roi_from_file(cam_id)
+            if polygon:
+                vw.set_roi_editor(self.roi_editors[cam_id])
+                vw.set_roi(polygon)
+                print(f'main_vw{cam_id}', polygon)
+
+            # 정보 영역
+            info_widget = QWidget()
+            info_widget.setStyleSheet("""
+                background-color: #1F1D2B; 
+                border-radius: 20px; 
+                font: 20px 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
+                """)
+            info_widget.setFixedSize(int((self.size.width()-240) * 0.5), 100)
+            info_layout = QHBoxLayout(info_widget)
+
+            #신호등
             
-        info_area1 = QVBoxLayout()
-        cam_info1 = QLabel(f"CAM 1 Logs {polygon}{(int((self.size.width()-10) * 0.5), int((self.size.width()-10) * 9/32))}")
-        # cam_info1.setStyleSheet("border: 2px solid black;    /* 두께 2px, 검은색 테두리 */")
-        reset_roi_btn1 =  QPushButton("🔄️ Reset ROI ")
-        reset_roi_btn1.setStyleSheet(self.btn_design)
-        reset_roi_btn1.setStyleSheet(self.btn_hover)
-        reset_roi_btn1.clicked.connect(lambda _, cid=1: self.reset_roi(cid))
-        info_area1.addWidget(reset_roi_btn1)
-        info_area1.addWidget(cam_info1)
-        
-        lv1 = LogViewer(1)
-        
-        roi_editor1 = self.roi_editors.get(1)
-        if roi_editor1 and vw1:
-            roi_editor1.setParent(vw1)
-            roi_editor1.setGeometry(vw1.rect())
+                   
+            # app = design.QApplication()
+            spotlight = design.CircleWidget()
+            spotlight.setCircleColor(Qt.green)
+            info_layout.addWidget(spotlight)
+            self.spotlights[cam_id] = spotlight
             
-            roi_editor1.show()
-            roi_editor1.raise_()
-        
-        cam1Layout.addWidget(vw1)
-        # cam1Layout.addWidget(cre1)
-        cam1Layout.addLayout(info_area1)
-        cam1Layout.addWidget(lv1)
-        self.video_layout.addWidget(cam1)
-        
-        
-        ## cam2 설정
-        cam2 = QWidget()
-
-        cam2Layout = QVBoxLayout()  # ✅ 먼저 생성
-        cam2Layout.setContentsMargins(0, 0, 0, 0)
-        cam2Layout.setSpacing(0)
-
-        cam2.setLayout(cam2Layout)  # ✅ 그다음 적용
-        # cam2.setStyleSheet("background-color: white;")  # ✅ 문제 없음
-        
-        vw2 = VideoWidget(cam_num=2, video_path=f"resources/videos/sample2.avi")
-        vw2.setFixedSize(int((self.size.width()-10) * 0.5), int((self.size.width()-10) * 9/32))
-        self.video_widgets[2] = vw2
-        self.create_roi_editor(2, vw2) # self.roi_editors[2]에 저장됨.
-        
-        polygon = self.load_roi_from_file(2)
-        if polygon:
-            vw2.set_roi_editor(self.roi_editors[2])
-            vw2.set_roi(polygon)
             
-        info_area2 = QVBoxLayout()
-        # cam_info2 = QLabel(f"CAM 2 Logs {vw2.roi} {(int((self.size.width()-10) * 0.5), int((self.size.width()-10) * 9/32))} {vw2.size()}")
-        cam_info2 = QLabel(f"CAM 2 Logs")
-        # cam_info2.setStyleSheet("border: 2px solid black;    /* 두께 2px, 검은색 테두리 */")
-        reset_roi_btn2 =  QPushButton("🔄️ Reset ROI")
-        reset_roi_btn2.setStyleSheet(self.btn_design)
-        reset_roi_btn2.setStyleSheet(self.btn_hover)
-        
-        reset_roi_btn2.clicked.connect(lambda _, cid=2: self.reset_roi(cid))
-        info_area2.addWidget(reset_roi_btn2)
-        info_area2.addWidget(cam_info2)
-                
-        lv2 = LogViewer(2)
-       
-        roi_editor2 = self.roi_editors.get(2)
-        if roi_editor2 and vw2:
-            roi_editor2.setParent(vw2)
-            roi_editor2.setGeometry(vw2.rect())
-            roi_editor2.show()
-            roi_editor2.raise_()
+            # 왼쪽 정보
+            info_left = QVBoxLayout()
+            info1 = QLabel(f"mute/on")
+            info2 = QLabel(f"event_type")
+            # info2 = QLabel(f"CAM {cam_id} Resolution: {self.size.width()}, {self.size.height()}")
+            for lbl in (info1, info2):
+                lbl.setStyleSheet("color: white;")
+                info_left.addWidget(lbl)
+            self.onoff_labels[cam_id] = info1
+            self.event_labels[cam_id] = info2
+
+            # 가운데 정보
+            info_center = QVBoxLayout()
+            info3 = QLabel("")
+            info4 = QLabel("")
+            for lbl in (info3, info4):
+                lbl.setStyleSheet("color: white;")
+                info_center.addWidget(lbl)
+            self.info_labels[cam_id] = (info3, info4)
             
-        cam2Layout.addWidget(vw2)
-        # cam2Layout.addWidget(cre2)
-        cam2Layout.addLayout(info_area2)
-        cam2Layout.addWidget(lv2)
-        self.video_layout.addWidget(cam2)
+            # 버튼
+            reset_btn = QPushButton("Reset\nROI")
+            reset_btn.setStyleSheet(self.btn_design)
+            reset_btn.setStyleSheet(self.btn_hover)
+            reset_btn.setFixedWidth(150)
+            reset_btn.clicked.connect(lambda _, cid=cam_id: self.reset_roi(cid))
 
-        self.log_viewers[1] = lv1
-        self.log_viewers[2] = lv2
-        vw1.vthread.event_triggered.connect(self.make_delayed_loader(lv1))
-        vw2.vthread.event_triggered.connect(self.make_delayed_loader(lv2))
+            info_layout.addLayout(info_left)
+            info_layout.addLayout(info_center)
+            info_layout.addWidget(reset_btn)
 
+            # LogViewer
+            lv = LogViewer(cam_id)
+            lv.setContentsMargins(0, 0, 0, 0)
+            lv.setFixedWidth(int((self.size.width()-230) * 0.5))
+            # lv.setStyleSheet("""
+            #     background-color: white;
+            #     border: 5px solid white;
+            # """)
+            
+            # ROI 에디터 설정
+            roi_editor = self.roi_editors.get(cam_id)
+            if roi_editor and vw:
+                roi_editor.setParent(vw)
+                roi_editor.setGeometry(vw.rect())
+                roi_editor.show()
+                roi_editor.raise_()
+
+            # 시그널 연결
+            vw.vthread.on_triggered.connect(self.onoff_info)
+            vw.vthread.mute_triggered.connect(self.onoff_info)
+            vw.vthread.event_triggered.connect(self.event_info)
+            vw.vthread.event_triggered.connect(self.lightControl)
+            vw.vthread.info_triggered.connect(self.handle_result)
+
+            # 레이아웃 추가
+            cam_layout.addWidget(vw)
+            cam_layout.addWidget(info_widget)
+            cam_layout.addWidget(lv)
+            self.video_layout.addWidget(cam_widget)
+
+     
+    def lightControl(self, event_time, cam_num, label, iou):
+        redlight = Qt.red
+        greenlight = Qt.green
+
+        # 빨간불로 설정
+        target = self.spotlights.get(cam_num, None)
+        target.setCircleColor(redlight)
+
+        # 기존 타이머가 있다면 멈춤
+        if cam_num in self.reset_timers:
+            self.reset_timers[cam_num].stop()
+
+        # 새로운 타이머 생성 또는 재사용
+        timer = QTimer()
+        timer.setSingleShot(True)
+        timer.timeout.connect(lambda: target.setCircleColor(greenlight))
+        timer.timeout.connect(lambda: self.event_labels.get(cam_num, None).setText("no event"))
+        timer.start(5000)  # 5초 (5000ms)
+
+        # 타이머 저장
+        self.reset_timers[cam_num] = timer
+        
+    
+    def onoff_info(self, type, label, cam_num):
+        text1 = f"{type}"
+
+        info1 = self.onoff_labels.get(cam_num, None)
+        if info1:
+            info1.setText(text1)
+            
+    def event_info(self, event_time, cam_num, label, iou):
+        text2 = f"{label}"
+
+        info2 = self.event_labels.get(cam_num, None)
+        if info2:
+            info2.setText(text2)
+            
+    def handle_result(self, data, cam_num):
+        class_names = [det['class_name'] for det in data]
+        counts = Counter(class_names)
+        class_count = sorted([[count, class_name] for class_name, count in counts.items()], reverse=True)
+
+        print(class_count)
+
+        if len(class_count) < 2:
+            print("감지된 클래스가 2개 미만입니다.")
+            return
+
+        text1 = f"{'forklift' if class_count[0][1].startswith('fork') else 'person':10s}{class_count[0][0]}"
+        text2 = f"{'forklift' if class_count[1][1].startswith('fork') else 'person':10s}{class_count[1][0]}"
+
+        info3, info4 = self.info_labels.get(cam_num, (None, None))
+        if info3 and info4:
+            info3.setText(text1)
+            info4.setText(text2)
+
+
+    
     def make_delayed_loader(self, log_viewer):
         def loader(*args, **kwargs):
             QTimer.singleShot(3000, lambda: log_viewer.loadLogs())
@@ -330,8 +414,8 @@ class MainWindow(QMainWindow):
         width = screen_size.width()
 
         if self.video_widgets:
-            new_width = int((width - 10) * 0.5)
-            new_height = int((width - 10) * 9 / 32)
+            new_width = int((width - 120) * 0.5)
+            new_height = int((width - 120) * 9 / 32)
 
             # if 1 in self.video_widgets:
             #     self.video_widgets[1].setFixedSize(new_width, new_height)
@@ -344,3 +428,10 @@ class MainWindow(QMainWindow):
                     roi_editor.setGeometry(vw.rect())  # 위치 및 크기 재조정
                 if vw.vthread:
                     vw.vthread.set_ui_size(new_width, new_height)
+                    
+    def closeEvent(self, a0):
+        if self.video_widgets[1]:
+            self.save_roi_to_file(self.video_widgets[1].roi.tolist(), 1)
+        if self.video_widgets[2]:
+            self.save_roi_to_file(self.video_widgets[2].roi.tolist(), 2)
+        return super().closeEvent(a0)
