@@ -243,6 +243,7 @@ class MainWindow(QMainWindow):
             vw.vthread.mute_triggered.connect(self.onoff_info)
             vw.vthread.event_triggered.connect(self.event_info)
             vw.vthread.event_triggered.connect(self.lightControl)
+            vw.vthread.event_triggered.connect(lambda: self.make_delayed_loader(lv)())
             vw.vthread.info_triggered.connect(self.handle_result)
 
             # 레이아웃 추가
