@@ -1,11 +1,9 @@
-KMP_DUPLICATE_LIB_OK='TRUE'
-
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QPushButton, QTabWidget, QSizePolicy, QLabel, QGraphicsDropShadowEffect
 )
 import os, json
-from PyQt5.QtGui import QFont, QGuiApplication, QCursor, QIcon, QMouseEvent 
+from PyQt5.QtGui import QFont, QGuiApplication, QCursor, QIcon
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 from gui.video_widget import VideoWidget
 from gui.roi_editor import ROIEditor
@@ -13,31 +11,25 @@ from gui.log_viewer import LogViewer
 import time
 from collections import Counter
 from utils import design
-from utils.alert_manager import alert_manager 
-
-# os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        ## 컨트롤할 변수들 생성 - 통합 초기화
+        ## 컨트롤할 변수들 생성
         self.video_widgets = {}
         self.roi_editors = {}
         self.info_widgets = {}
-        self.log_viewers = {}  # 실제 사용하도록 수정
-        self.reset_timers = {}  # 여기서 초기화
-        self.spotlights = {}
-        self.onoff_labels = {}
-        self.event_labels = {}  
-        self.info_labels = {}
-        self.setWindowFlags(Qt.FramelessWindowHint) 
+        self.log_viewers = {}
+        self.roi_reset_buttons = {}
+        
         screen = QGuiApplication.primaryScreen()
         self.size = screen.availableGeometry()
+        # self.resize(int(size.width() * 0.8), int(size.height() * 0.8))
         self.setStyleSheet("background-color: #161616;")
         self.setWindowTitle("Forklift Detection")
-        
-        
-        self.setMinimumSize(400, 400)
+        self.setMinimumSize(self.size.width(), self.size.height())
+        # self.setMaximumSize(size.width(), size.height())
+        self.showMaximized()
         self.setContentsMargins(0,0,0,0)
         
         ## 전체 영역 분할
@@ -49,18 +41,19 @@ class MainWindow(QMainWindow):
         ## UI 영역 설정
         self.ui_area = QWidget()
         ui_layout = QHBoxLayout(self.ui_area)
-        # self.ui_area.setFixedHeight(self.size.height())
+        self.ui_area.setFixedHeight(55)
         self.ui_area.setStyleSheet("background-color: #161616;")
         self.ui_area.setContentsMargins(0,0,0,0)
-        main_layout.addWidget(self.ui_area, alignment=Qt.AlignCenter) 
-        # 스타일시트 통합
+        main_layout.addWidget(self.ui_area, alignment=Qt.AlignRight)
+
         self.btn_design = """
             background-color: 	#161616	;
             color: #000000;
-            border-radius:  5px;
+            border-radius: 10px;
             font-size: 28px;
-            font-family: 'Pretendard Variable', 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
             font-weight: bold;
+            
         """
         
         self.btn_hover = """
@@ -70,7 +63,7 @@ class MainWindow(QMainWindow):
                 border: 3px solid #00D2B5;
                 border-radius: 5px;
                 font-size: 28px;
-                font-family: 'Pretendard Variable', 'Helvetica Neue', Arial, sans-serif;
+                font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
                 font-weight: bold;
             }
             QPushButton:hover {
@@ -85,24 +78,22 @@ class MainWindow(QMainWindow):
                 color: #000000;
                 border-radius:5px;
             }
+            
+            
         """
         
+        
         # Start 버튼
+
+        ## 종료 버튼
         start_btn = QPushButton("")
         start_btn.clicked.connect(self.on_start)
         config_btn = QPushButton("")
-        minimize_btn = QPushButton("")
-        minimize_btn.clicked.connect(self.showMinimized)
-        maximize_btn = QPushButton("")
-        maximize_btn.clicked.connect(lambda: self.move(0, 0))
-        maximize_btn.clicked.connect(self.showFullScreen)
         exit_btn = QPushButton("")
         exit_btn.clicked.connect(self.close)
         
         start_btn.setCursor(QCursor(Qt.PointingHandCursor))
         config_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        minimize_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        maximize_btn.setCursor(QCursor(Qt.PointingHandCursor))
         exit_btn.setCursor(QCursor(Qt.PointingHandCursor))
         
         start_btn.setStyleSheet(f"""
@@ -139,7 +130,7 @@ class MainWindow(QMainWindow):
                 border: 3px solid #00D2B5;
                 color: #00D2B5;
                 background-image: url(resources/icons/cog_c.png);
-            }} 
+            }}
             QPushButton:pressed {{
                 background-color: #00D2B5;
                 border: 3px solid #00D2B5;
@@ -148,50 +139,6 @@ class MainWindow(QMainWindow):
             }}
         """)
 
-        # minimize 버튼
-        minimize_btn.setStyleSheet(f"""
-            QPushButton {{
-                {self.btn_design}
-                background-image: url(resources/icons/Vector__c.png);
-                background-repeat: no-repeat;
-                background-position: center;
-            }}
-            QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                color: #00D2B5;
-                background-image: url(resources/icons/Vector__c.png);
-            }} 
-            QPushButton:pressed {{
-                background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                color: #000000;
-                background-image: url(resources/icons/Vector__.png);
-            }}
-        """)
-        
-        # minimize 버튼
-        maximize_btn.setStyleSheet(f"""
-            QPushButton {{
-                {self.btn_design}
-                background-image: url(resources/icons/Vector_mc.png);
-                background-repeat: no-repeat;
-                background-position: center;
-            }}
-            QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                color: #00D2B5;
-                background-image: url(resources/icons/Vector_mc.png);
-            }} 
-            QPushButton:pressed {{
-                background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                color: #000000;
-                background-image: url(resources/icons/Vector_m.png);
-            }}
-        """)
-        
         # Exit 버튼
         exit_btn.setStyleSheet(f"""
             QPushButton {{
@@ -214,87 +161,36 @@ class MainWindow(QMainWindow):
             }}
         """)
         
-        start_btn.setFixedSize(60,40)
-        config_btn.setFixedSize(60,40)
-        minimize_btn.setFixedSize(60,40)
-        maximize_btn.setFixedSize(60,40)
-        exit_btn.setFixedSize(60,40)
+        
+        start_btn.setFixedSize(70,50)
+        config_btn.setFixedSize(70,50)
+        exit_btn.setFixedSize(70,50)
         ui_layout.addWidget(start_btn)
         ui_layout.addWidget(config_btn)
-        ui_layout.addWidget(minimize_btn)
-        ui_layout.addWidget(maximize_btn)
         ui_layout.addWidget(exit_btn)
         
         ## 비디오 영역
         self.video_area = QWidget()
         self.video_layout = QHBoxLayout()
-        self.video_layout.setContentsMargins(40,0,40,0)
-        self.video_layout.setSpacing(40)
+        # self.video_layout.setContentsMargins(60,0,60,60)
+        self.video_layout.setSpacing(60)
         self.video_area.setLayout(self.video_layout)
         
         main_layout.addWidget(self.video_area)
-        self.main_layout = main_layout
-        
-        # --- 창 드래그 기능 구현 ---
-    def mousePressEvent(self, event: QMouseEvent):
-        # 마우스 왼쪽 버튼이 눌렸을 때만 처리
-        if event.button() == Qt.LeftButton:
-            # 현재 마우스 위치(전역 좌표)에서 창의 왼쪽 상단 위치를 뺀 값 저장
-            self.old_pos = event.globalPos() - self.pos()
-            event.accept() # 이벤트 처리 완료
 
-    def mouseMoveEvent(self, event: QMouseEvent):
-        # 마우스 왼쪽 버튼이 눌린 상태에서 이동 중일 때만 처리
-        if event.buttons() == Qt.LeftButton and self.old_pos is not None:
-            # 새로운 창 위치 = 현재 마우스 전역 위치 - 저장된 오프셋
-            self.move(event.globalPos() - self.old_pos)
-            event.accept()
-
-    def mouseReleaseEvent(self, event: QMouseEvent):
-        # 마우스 버튼이 놓였을 때 오프셋 초기화
-        self.old_pos = None
-        event.accept()
-        
-    def mouseDoubleClickEvent(self, event: QMouseEvent):
-        # 마우스 왼쪽 버튼이 더블클릭되었고, 타이틀바 영역 내에서 발생했을 때
-        if event.button() == Qt.LeftButton:
-            self.toggle_maximize_restore() # 최대화/복원 토글 함수 호출
-            event.accept()
-        super().mouseDoubleClickEvent(event) # 부모 클래스의 이벤트도 호출 (필요시)
-
-    # 최대화/복원 토글 기능
-    def toggle_maximize_restore(self):
-        if self.isMaximized():
-            self.showNormal()
-            # self.maximize_button.setText("□") # 최대화 버튼 텍스트 변경
-        else:
-            # self.showMaximized()
-            self.showFullScreen()
-            # self.maximize_button.setText("❐") # 복원 버튼 텍스트 변경
-
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
-            self.close()
-        super().keyPressEvent(event)
-    # --------------------------
-        
-        
-        
-        
         
     def on_start(self):
         """ 
         시작시 cam의 vw, roi, log 생성
         """
-        
-        self.main_layout.removeWidget(self.ui_area)
-        self.main_layout.insertWidget(0, self.ui_area, alignment=Qt.AlignRight)
-        self.ui_area.setFixedHeight(50)
-        self.setMinimumSize(self.size.width(), self.size.height())
-        self.showFullScreen()
-        
         if self.video_widgets:
             return
+        self.reset_timers = {}
+        self.spotlights = {}
+        self.onoff_labels = {}
+        self.event_labels = {}  # 캠별 info1, info2 레이블 저장용 딕셔너리
+        self.info_labels = {}  # 캠별 info3, info4 레이블 저장용 딕셔너리
+
         
         for cam_id in range(1, 3):  # CAM 1과 CAM 2
             cam_widget = QWidget()
@@ -304,8 +200,8 @@ class MainWindow(QMainWindow):
             
             cam_widget.setStyleSheet(""" 
                 background-color: #171D35;
-                border-radius:  5px;
-            """)
+                border-radius: 10px;
+                                     """)
             cam_widget.setLayout(cam_layout)
 
             # CAM 이름 버튼
@@ -314,12 +210,12 @@ class MainWindow(QMainWindow):
             cam_name_btn.setStyleSheet("""
                 QPushButton {
                     border-bottom: none;
-                    border-top-left-radius:  5px;
-                    border-top-right-radius:  5px;
+                    border-top-left-radius: 10px;
+                    border-top-right-radius: 10px;
                     background-color: #171D35;
                     color: #E6E6E6;
                     font-size: 28px;
-                    font-family: 'Pretendard Variable', 'Helvetica Neue', Arial, sans-serif;
+                    font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
                     font-weight: bold;
                 }
             """)
@@ -328,20 +224,15 @@ class MainWindow(QMainWindow):
 
             # 비디오 위젯
             vw = VideoWidget(cam_num=cam_id, video_path=f"resources/videos/sample{cam_id}.avi")
-            vw.setFixedSize(int((self.size.width()-180) * 0.5), int((self.size.width()-180) * 9/32))
+            vw.setFixedSize(int((self.size.width()-200) * 0.5), int((self.size.width()-200) * 9/32))
             vw.setStyleSheet("border: 2px solid #000000;")
             self.video_widgets[cam_id] = vw
 
             self.create_roi_editor(cam_id, vw)
             polygon = self.load_roi_from_file(cam_id)
             if polygon:
-                print(""" 
-                      11111111111111111111
-                      vthread
-                      """)
                 vw.set_roi_editor(self.roi_editors[cam_id])
                 vw.set_roi(polygon)
-                vw.vthread.set_roi(polygon)
                 print(f'main_vw{cam_id}', polygon)
 
             # 정보 영역
@@ -350,22 +241,27 @@ class MainWindow(QMainWindow):
                 background-color: #1D2848; 
                 color: #E6E6E6; 
                 border-radius: 20px; 
-                font: 20px 'Pretendard Variable', 'Helvetica Neue', Arial, sans-serif;
-            """)
-            info_widget.setFixedSize(int((self.size.width()-180) * 0.5), 100)
+                font: 20px 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
+                """)
+            info_widget.setFixedSize(int((self.size.width()-200) * 0.5), 100)
             info_layout = QHBoxLayout(info_widget)
             self.info_widgets[cam_id] = info_widget
 
-            # 신호등
+            #신호등
+            
+                   
+            # app = design.QApplication()
             spotlight = design.CircleWidget()
             spotlight.setCircleColor(Qt.green)
             info_layout.addWidget(spotlight)
             self.spotlights[cam_id] = spotlight
             
+            
             # 왼쪽 정보
             info_left = QVBoxLayout()
             info1 = QLabel(f"mute/on")
             info2 = QLabel(f"event_type")
+            # info2 = QLabel(f"CAM {cam_id} Resolution: {self.size.width()}, {self.size.height()}")
             for lbl in (info1, info2):
                 lbl.setStyleSheet("color: #E6E6E6;")
                 info_left.addWidget(lbl)
@@ -382,9 +278,10 @@ class MainWindow(QMainWindow):
             self.info_labels[cam_id] = (info3, info4)
             
             # 버튼
-            reset_btn = QPushButton("")
+            reset_btn = QPushButton("Reset\nROI")
+            reset_btn.setStyleSheet(self.btn_design)
             reset_btn.setStyleSheet(self.btn_hover)
-            reset_btn.setFixedSize(80, 80)
+            reset_btn.setFixedWidth(150)
             reset_btn.clicked.connect(lambda _, cid=cam_id: self.reset_roi(cid))
 
             info_layout.addLayout(info_left)
@@ -394,8 +291,11 @@ class MainWindow(QMainWindow):
             # LogViewer
             lv = LogViewer(cam_id)
             lv.setContentsMargins(0, 0, 0, 0)
-            lv.setFixedWidth(int((self.size.width()-180) * 0.5))
-            self.log_viewers[cam_id] = lv  # ✅ 딕셔너리에 저장 추가
+            lv.setFixedWidth(int((self.size.width()-200) * 0.5))
+            # lv.setStyleSheet("""
+            #     background-color: white;
+            #     border: 5px solid white;
+            # """)
             
             # ROI 에디터 설정
             roi_editor = self.roi_editors.get(cam_id)
@@ -405,20 +305,13 @@ class MainWindow(QMainWindow):
                 roi_editor.show()
                 roi_editor.raise_()
 
-
-
             # 시그널 연결
-            vw.video_saver.clip_saved_signal.connect(lv.loadLogs)
             vw.vthread.on_triggered.connect(self.onoff_info)
             vw.vthread.mute_triggered.connect(self.onoff_info)
             vw.vthread.event_triggered.connect(self.event_info)
-            alert_manager.on_alert_signal.connect(self.lightControl, type=Qt.QueuedConnection)
-            # vw.vthread.event_triggered.connect(lambda: self.make_delayed_loader(lv)())
+            vw.vthread.event_triggered.connect(self.lightControl)
+            vw.vthread.event_triggered.connect(lambda: self.make_delayed_loader(lv)())
             vw.vthread.info_triggered.connect(self.handle_result)
-
-           
-            if vw.video_saver: # video_saver 인스턴스가 존재한다면
-                vw.video_saver.log_appended_signal.connect(lv.append_log_text, type=Qt.QueuedConnection)
 
             # 레이아웃 추가
             cam_layout.addWidget(vw)
@@ -427,69 +320,39 @@ class MainWindow(QMainWindow):
             self.video_layout.addWidget(cam_widget)
 
      
-    def lightControl(self, str, cam_num):
-        print(f"\n[lightControl 호출 시작] cam_num: {cam_num}") 
+    def lightControl(self, event_time, cam_num, label, iou):
+        redlight = Qt.red
+        greenlight = Qt.green
 
-        # 1. target 객체 유효성 검사
+        # 빨간불로 설정
         target = self.spotlights.get(cam_num, None)
-        if not target:
-            print(f"  ❌ 경고: cam_num {cam_num}에 해당하는 Spotlight 객체를 'self.spotlights'에서 찾을 수 없습니다.")
-            print(f"  현재 'self.spotlights': {self.spotlights}") # 현재 딕셔너리 내용 출력
-            # QMessageBox.warning(self, "Spotlight 오류", f"카메라 {cam_num}의 스포트라이트를 찾을 수 없습니다.")
-            return # 더 이상 진행하지 않음
-            
-        print(f"  ✅ cam_num {cam_num}에 대한 Spotlight 객체 유효: {target} (타입: {type(target)})")
+        target.setCircleColor(redlight)
 
-        # 2. 빨간불로 설정
-        print(f"  cam_num {cam_num}의 스포트라이트를 빨간색으로 설정 시도.")
-        target.setCircleColor(Qt.red) # 이 메서드 내부에 print문 추가하여 실제 호출되는지 확인
-
-        # 3. 기존 타이머가 있다면 멈춤
+        # 기존 타이머가 있다면 멈춤
         if cam_num in self.reset_timers:
-            old_timer = self.reset_timers[cam_num]
-            if old_timer.isActive():
-                old_timer.stop()
-                print(f"  기존 타이머 중지됨 (cam_num: {cam_num}).")
-            old_timer.deleteLater()
-            print(f"  기존 타이머 삭제됨 (cam_num: {cam_num}).")
-        else:
-            print(f"  cam_num {cam_num}에 대한 기존 타이머 없음.")
+            self.reset_timers[cam_num].stop()
 
-        # 4. 새로운 타이머 생성
-        timer = QTimer(self)  # 부모 지정
+        # 새로운 타이머 생성 또는 재사용
+        timer = QTimer()
         timer.setSingleShot(True)
-        
-        def reset_to_green():
-            print(f"[타이머 만료] cam_num: {cam_num} - 초록불로 리셋 및 'no event' 설정.")
-            target.setCircleColor(Qt.green)
-            event_label = self.event_labels.get(cam_num, None)
-            if event_label:
-                event_label.setText("no event")
-                print(f"  cam_num {cam_num}의 이벤트 라벨 'no event'로 설정됨.")
-            else:
-                print(f"  경고: cam_num {cam_num}에 해당하는 event_label을 찾을 수 없습니다.")
-            
-            if cam_num in self.reset_timers and self.reset_timers[cam_num] is timer:
-                del self.reset_timers[cam_num]
-                print(f"  cam_num {cam_num}의 타이머 딕셔너리에서 제거됨.")
-        
-        timer.timeout.connect(reset_to_green)
-        timer.start(5000)  # 5초
-        print(f"  cam_num {cam_num}에 대한 새 타이머 시작 (5초 후 리셋).")
+        timer.timeout.connect(lambda: target.setCircleColor(greenlight))
+        timer.timeout.connect(lambda: self.event_labels.get(cam_num, None).setText("no event"))
+        timer.start(5000)  # 5초 (5000ms)
 
-        # 5. 타이머 저장
+        # 타이머 저장
         self.reset_timers[cam_num] = timer
-        print(f"[lightControl 호출 종료] cam_num: {cam_num}")
         
     
     def onoff_info(self, type, label, cam_num):
         text1 = f"{type}"
+
         info1 = self.onoff_labels.get(cam_num, None)
         if info1:
             info1.setText(text1)
             
     def event_info(self, event_time, cam_num, label, iou):
         text2 = f"{label}"
+
         info2 = self.event_labels.get(cam_num, None)
         if info2:
             info2.setText(text2)
@@ -513,11 +376,11 @@ class MainWindow(QMainWindow):
             info3.setText(text1)
             info4.setText(text2)
 
+
     
     def make_delayed_loader(self, log_viewer):
-        print('delayed_loader debug')
         def loader(*args, **kwargs):
-            QTimer.singleShot(5000, lambda: log_viewer.loadLogs())
+            QTimer.singleShot(3000, lambda: log_viewer.loadLogs())
         return loader
 
     
@@ -538,17 +401,13 @@ class MainWindow(QMainWindow):
             ## 참조 제거
             if hasattr(vw, 'roi_editor'):
                 vw.roi_editor = None
+
             old_editor.deleteLater()
 
         self.create_roi_editor(cam_id, vw)
-        
-        # 설정 파일 안전하게 정리
-        config_dir = 'resources/config/'
-        if os.path.exists(config_dir):
-            for filename in os.listdir(config_dir):
-                filepath = os.path.join(config_dir, filename)
-                if os.path.isfile(filepath):
-                    os.remove(filepath)
+        if os.listdir('resources/config/'):
+            for x in os.listdir('resources/config/'):
+                os.remove('resources/config/'+x)
         print(f"카메라 {cam_id} ROI 초기화됨 및 새 ROIEditor 생성됨")
 
     def create_roi_editor(self, cam_id, vw):
@@ -593,7 +452,6 @@ class MainWindow(QMainWindow):
         vw = self.video_widgets.get(cam_id)
         if vw:
             vw.set_roi(polygon)
-            vw.vthread.set_roi(polygon)
 
         # 2. ROI 설정 저장
         self.save_roi_to_file(polygon, cam_id)
@@ -624,9 +482,13 @@ class MainWindow(QMainWindow):
         width = screen_size.width()
 
         if self.video_widgets:
-            new_width = int((width - 180) * 0.5)
-            new_height = int((width - 180) * 9 / 32)
+            new_width = int((width - 200) * 0.5)
+            new_height = int((width - 200) * 9 / 32)
 
+            # if 1 in self.video_widgets:
+            #     self.video_widgets[1].setFixedSize(new_width, new_height)
+            # if 2 in self.video_widgets:
+            #     self.video_widgets[2].setFixedSize(new_width, new_height)
             for cam_id, vw in self.video_widgets.items():
                 vw.setFixedSize(new_width, new_height)
                 roi_editor = self.roi_editors.get(cam_id)
@@ -637,25 +499,11 @@ class MainWindow(QMainWindow):
                 if vw.vthread:
                     vw.vthread.set_ui_size(new_width, new_height)
                 if log_viewer:
-                    log_viewer.setFixedWidth(new_width)
+                    log_viewer.setFixedWidget(new_width)
                     
-    def closeEvent(self, event):
-        """종료 시 안전한 정리 - 수정된 부분"""
-        try:
-            # 타이머들 정리
-            for timer in self.reset_timers.values():
-                if timer and timer.isActive():
-                    timer.stop()
-                timer.deleteLater()
-            
-            # ROI 저장 (안전하게)
-            for cam_id in [1, 2]:
-                if cam_id in self.video_widgets:
-                    vw = self.video_widgets[cam_id]
-                    if hasattr(vw, 'roi') and vw.roi is not None:
-                        self.save_roi_to_file(vw.roi.tolist(), cam_id)
-                        
-        except Exception as e:
-            print(f"종료 중 오류 발생: {e}")
-        finally:
-            super().closeEvent(event)
+    def closeEvent(self, a0):
+        if self.video_widgets[1]:
+            self.save_roi_to_file(self.video_widgets[1].roi.tolist(), 1)
+        if self.video_widgets[2]:
+            self.save_roi_to_file(self.video_widgets[2].roi.tolist(), 2)
+        return super().closeEvent(a0)

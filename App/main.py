@@ -1,3 +1,6 @@
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import sys
 from PyQt5.QtWidgets import QApplication
 from gui.main_window import MainWindow

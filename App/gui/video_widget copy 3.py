@@ -9,7 +9,7 @@ from recorder.saver import VideoSaver
 from detection.detector_onnx import Detector
 
 from detection.postprocessor import PostProcessor
-# from gui.log_viewer import LogViewer
+from gui.log_viewer import LogViewer
 from shapely.geometry import Polygon, box
 from utils.alert_manager import alert_manager
 
@@ -84,15 +84,17 @@ class VideoThread(QThread):
             if not ret:
                 break
 
+            # frame = cv2.resize(frame, (self.ui_width, self.ui_height))    
+                
             self.frame_count += 1
             self.video_buffer.add_frame(frame.copy())
 
             ## 3프레임마다 1개씩 모델에 전달.
-            if self.frame_count % 10 != 0:
+            if self.frame_count % 3 != 0:
                 continue
             
             
-            self.scaled_roi = self.get_scaled_roi(frame)
+            scaled_roi = self.get_scaled_roi(frame)
             # if scaled_roi is not None:
             #     cv2.polylines(frame, [scaled_roi], isClosed=True, color=(0, 255, 0), thickness=2)
             #     # (선택적으로 원래 ROI도 표시)
@@ -110,11 +112,7 @@ class VideoThread(QThread):
             #     cv2.polylines(frame, [np.array(self.roi, dtype=np.int32)], isClosed=True, color=(0, 0, 255), thickness=3)
 
             # 객체 감지
-            crt = time.time()
-            
             results = self.postprocessor.filter_results(self.detector.detect_objects(frame))
-            print(f"{time.time()-crt:.2f} sec")
-        
             
             self.info_triggered.emit(results, self.cam_num)    
                 
@@ -129,65 +127,31 @@ class VideoThread(QThread):
                 if class_name == 'forklift-vertical':
                     self.on_triggered.emit('on', label, self.cam_num)
 
-                # if det.get('polygons'):
-                #     color = (0, 255, 0) if class_name == 'person' else (205, 205, 0)
-                #     for poly in det['polygons']:
-                #         poly_np = np.array(poly, dtype=np.int32)
-                #         cv2.polylines(frame, [poly_np], isClosed=True, color=color, thickness=2)
-                #     cv2.putText(frame, label, (int(x1), int(y1) - 10),
-                #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
-                # 클래스 이름에 따라 색상 정의
-                if class_name == 'person':
-                    color = (0, 255, 0) # 초록색 (사람)
-                elif class_name.startswith('forklift'):
-                    color = (205, 205, 0) # 청록색 (지게차)
-                else:
-                    color = (0, 165, 255) # 주황색 (그 외 객체, 필요시 변경)
+                if det.get('polygons'):
+                    color = (0, 255, 0) if class_name == 'person' else (205, 205, 0)
+                    for poly in det['polygons']:
+                        poly_np = np.array(poly, dtype=np.int32)
+                        cv2.polylines(frame, [poly_np], isClosed=True, color=color, thickness=2)
+                    cv2.putText(frame, label, (int(x1), int(y1) - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
-                # 바운딩 박스 그리기
-                cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
-                
-                #  중심점 계산 및 그리기 추가 
-                center_x = int((x1 + x2) / 2)
-                center_y = int((y1 + y2) / 2)
-                
-                # 중심점 그리기 (예: 반지름 5픽셀의 원, 채워진 원)
-                cv2.circle(frame, (center_x, center_y), 5, color, -1) # -1은 원을 채움
-                
-                # 라벨 텍스트 배경 그리기 (선택 사항, 텍스트 가독성 향상)
-                # text_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)[0]
-                # cv2.rectangle(frame, (int(x1), int(y1) - text_size[1] - 10), 
-                #               (int(x1) + text_size[0], int(y1)), color, -1) # 배경 채우기
-                
-                # 라벨 텍스트 넣기
-                cv2.putText(frame, label, (int(x1), int(y1) - 10), # 박스 위쪽
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1) # 텍스트 색상을 박스 색상과 동일하게
-
-            # --- ⭐⭐ 이 부분의 로직을 수정합니다. ⭐⭐ ---
-            ## 사람 - ROI 영역 체크
-            person_roi_detected, person_roi_iou = self.check_person_roi_overlap(results)
-            if person_roi_detected or self.is_within_roi(results):
-                # ⭐ 쿨다운과 관계없이 즉시 알람 발생 ⭐
-                alert_manager.on_alert_signal.emit("inroi", self.cam_num) 
-                
-                # ⭐ 다른 이벤트는 쿨다운에 걸리지 않으면 트리거 ⭐
-                if self.can_trigger_event(): 
+            ## 쿨다운에 걸리지 않으면.
+            if self.can_trigger_event():
+                ## 사람 - ROI 영역 체크 or roi안에 외곽선 점이 있는지(잘 되는지 모름)
+                person_roi_detected, person_roi_iou = self.check_person_roi_overlap(results)
+                if person_roi_detected or self.is_within_roi(results):
+                    alert_manager.on_alert_signal.emit("inroi")
                     self.event_triggered.emit(time.time(), self.cam_num, "person-roi overlap", person_roi_iou)
-            
-            ## 사람 - 지게차 IOU 체크
-            overlap_detected, iou_val = self.check_person_forklift_overlap(results)
-            if overlap_detected:
-                # ⭐ 쿨다운과 관계없이 즉시 알람 발생 ⭐
-                alert_manager.on_alert_signal.emit("overlap", self.cam_num) 
                 
-                # ⭐ 다른 이벤트는 쿨다운에 걸리지 않으면 트리거 ⭐
-                if self.can_trigger_event():
+                ## 사람 - 지게차 IOU 체크
+                overlap_detected, iou_val = self.check_person_forklift_overlap(results)
+                if overlap_detected:
+                    alert_manager.on_alert_signal.emit("overlap")
                     self.event_triggered.emit(time.time(), self.cam_num, "person-forklift overlap", iou_val)
 
             # print('inroi_result', self.is_within_roi(results))
 
             # 🔹 시각화된 frame 전달
-            
             self.frame_ready.emit(frame)
 
     def set_roi(self, roi_points):
@@ -195,7 +159,7 @@ class VideoThread(QThread):
         roi 좌표를 전달받아서 self.roi 설정.
         """
         self.roi = np.array(roi_points, dtype=np.int32)
-        # print('vt', self.roi)
+        print('vt', self.roi)
 
     def stop(self):
         self.running = False
@@ -259,8 +223,8 @@ class VideoThread(QThread):
         # roi_poly = Polygon(self.roi)
         roi_poly = Polygon(self.scaled_roi)
         
-        # print(person_polys)
-        # print(roi_poly)
+        print(person_polys)
+        print(roi_poly)
         
         if not roi_poly.is_valid:
             print("ROI 폴리곤이 유효하지 않습니다.")
@@ -299,7 +263,7 @@ class VideoWidget(QLabel):
         self.postprocessor = PostProcessor(conf_threshold=0.6)
         self.video_buffer = VideoBuffer(fps=30, max_seconds=5)
         self.video_saver = VideoSaver(cam_num=cam_num)
-        # self.log_viewer = LogViewer(cam_num=cam_num)
+        self.log_viewer = LogViewer(cam_num=cam_num)
         self.cam_num = cam_num
         self.roi = None
 
@@ -321,12 +285,14 @@ class VideoWidget(QLabel):
         self.roi = np.array(roi, dtype=np.int32)
         
         
-        # print(
-        #     f""" 
-        #     111111111111111111
-        #     {(self.width(), self.height())}
-        #     """)
-        # print('vw',roi)
+        print(
+            f""" 
+            
+            111111111111111111
+            {(self.width(), self.height())}
+            """)
+        
+        print('vw',roi)
         self.vthread.set_ui_size(self.width(), self.height())
         self.vthread.set_roi(roi)
         if hasattr(self, 'roi_editor') and self.roi_editor:
@@ -365,12 +331,12 @@ class VideoWidget(QLabel):
         if self.roi is not None:
             self.vthread.set_roi(self.roi)
             
-            # print(
-            # f""" 
+            print(
+            f""" 
             
-            # 비디오 쓰레드 크기 변경
-            # {(self.width(), self.height())}
-            # """)
+            비디오 쓰레드 크기 변경
+            {(self.width(), self.height())}
+            """)
         # self.vthread.set_roi(self.roi)
         if hasattr(self, 'roi_editor'):
             self.roi_editor.setGeometry(self.rect())

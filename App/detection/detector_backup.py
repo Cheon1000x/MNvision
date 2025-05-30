@@ -6,9 +6,8 @@ import cv2
 from detection.onnx_utils import ONNXProcessor
 
 class Detector:
-    def __init__(self, model_path='resources/models/yolov8_continued_seg_ver3.pt'):
-    # def __init__(self, model_path='resources/models/yolov8_seg_custom.pt'):
-    # def __init__(self, model_path='resources/models/yolov8_seg_onnx_ver1.pt'):
+    # def __init__(self, model_path='resources/models/yolov8_continued_seg_ver3.pt'):
+    def __init__(self, model_path='resources/models/yolov8_seg_custom.pt'):
     # def __init__(self, model_path='resources/models/yolov8n.pt'):
     # def __init__(self, model_path='resources/models/yolov5n.pt'):
     # def __init__(self, model_path='resources/models/best.onnx'):
@@ -26,7 +25,6 @@ class Detector:
         self.model.to(self.device)
         self.model.eval()
         
-
 
 
     def detect_objects(self, frame):
@@ -50,9 +48,7 @@ class Detector:
         # results = self.processor(frame)
         results = self.model.predict(frame, device=self.device, stream=False)[0]
         detections = []
-        print('-'*50)
-        print(results[0].masks.data.shape)
-        print('-'*50)
+
         # 원본 크기 기준으로 polygon 좌표 스케일링
         orig_h, orig_w = frame.shape[:2]
         input_h, input_w = results.orig_img.shape[:2]

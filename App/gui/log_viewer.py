@@ -21,6 +21,27 @@ class LogViewer(QWidget):
         screen = QGuiApplication.primaryScreen()
         self.screen_size = screen.availableGeometry()
         self.setContentsMargins(0,0,0,0)        
+        
+        # ⭐ QPlainTextEdit 인스턴스를 멤버 변수로 생성 ⭐
+        self.log_text_edit = QPlainTextEdit(self) 
+        self.log_text_edit.setReadOnly(True) # 읽기 전용으로 설정
+        self.log_text_edit.setFixedHeight(0) # 필요한 경우 최소 높이 설정
+        
+        self.mboxSS = """
+        QLabel {
+        color: white;
+        font-size: 35px;
+        margin: 10px 30px;
+        }
+        
+        QMessageBox {
+            width:300px;
+            height:200px;
+            color: white;
+            font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
+            font-weight: bold;
+            }
+        """
         ## UI 생성 선언
         self.initUI()
 
@@ -31,20 +52,16 @@ class LogViewer(QWidget):
         
         layout.setSpacing(0)  # 위젯 사이 간격 제거
         
-        # layout.setContentsMargins(10,10,10,10)
-                        
         ## logvier 테이블 생성
         self.table = QTableWidget()
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        # self.table.setFixedWidth(int(self.size().width()-200))
 
-        # self.table.setStyleSheet("margin:0; padding:0;")
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Fixed) 
         self.total_width = self.table.width()
         
         self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Timestamp", "Cam", "Event", "Play"])
+        self.table.setHorizontalHeaderLabels(["Time", "Cam", "Event", "Play"])
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.cellClicked.connect(self.onCellClicked)
         layout.addWidget(self.table)
@@ -54,23 +71,24 @@ class LogViewer(QWidget):
                 border-radius: 6px;
                 background-color: #2b2b2b;
                 gridline-color: transparent;
-                font-size: 20px;
+                font-size: 15px;
                 font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
                 color: #000000;
             }
 
             QHeaderView::section {
-                background-color: #252836;
-                color: #fe8e52;
+                background-color: #1D2848;
+                color: #E6E6E6;
                 padding: 4px 10px;
                 border: none;
                 font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
                 font-weight: bold;
-                font-size: 20px;
+                font-size: 15px;
             }
 
             QTableWidget::item {
-                color: #dddddd;
+                background-color: #2A385B;
+                color: #E6E6E6;
                 font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
                 font-weight: bold;
                 padding: 4px 10px;
@@ -87,7 +105,7 @@ class LogViewer(QWidget):
             }
             
             QTableWidget::item:selected {
-                background-color: #000000;  
+                background-color: #1D2848;  
                 color: #ADFF2F;
             }
 
@@ -107,7 +125,7 @@ class LogViewer(QWidget):
         self.table.verticalHeader().setVisible(True)
         self.table.horizontalHeader().setStretchLastSection(True)
         # self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        # self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         self.btn_design = """
             background-color: 	#DCDCDC	;
@@ -124,27 +142,25 @@ class LogViewer(QWidget):
         self.btn_hover = """
             QPushButton {
                 background-color: 	#000000	;
-                color: #fe8e52;
-                border: 1px solid #fe8e52;
+                color: #E6E6E6;
+                border: 1px solid #E6E6E6;
                 border-radius: 5px;
                 font-size: 28px;
                 font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #4f3a2f;
-                border: 3px solid #fe8e52;
-                color: #fe8e52;
+                background-color: #123332;
+                border: 3px solid #E6E6E6;
+                color: #E6E6E6;
                 border-radius:5px;
             }
             QPushButton:pressed {
-                background-color: #fe8e52;
-                border: 3px solid #fe8e52;
+                background-color: #E6E6E6;
+                border: 3px solid #E6E6E6;
                 color: #000000;
                 border-radius:5px;
             }
-            
-            
         """
         
         ## 로그/비디오 버튼 레이아웃        
@@ -154,27 +170,27 @@ class LogViewer(QWidget):
         btnWidget.setLayout(main_layout)
         main_layout.setContentsMargins(0,0,0,0)
         # btnWidget.setFixedSize(200,330)
-        btnWidget.setFixedWidth(180)
+        btnWidget.setFixedWidth(100)
         
         
         ## 갱신refresh 버튼
-        refresh_btn = QPushButton("Refresh\nLogs")
+        refresh_btn = QPushButton("")
         refresh_btn.clicked.connect(self.loadLogs)
-        refresh_btn.setFixedWidth(180) # 너비만 고정
+        refresh_btn.setFixedWidth(100) # 너비만 고정
         refresh_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         main_layout.addWidget(refresh_btn, 1)
 
         # 로그 버튼
-        log_btn = QPushButton("Open\nLogs")
+        log_btn = QPushButton("")
         log_btn.clicked.connect(lambda: self.openFolder('resources/logs'))  # 각 버튼에 맞는 함수로 연결
-        log_btn.setFixedWidth(180) # 너비만 고정
+        log_btn.setFixedWidth(100) # 너비만 고정
         log_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         main_layout.addWidget(log_btn, 1) # 1은 stretch 비율
 
         # 삭제 버튼
-        remove_btn = QPushButton("remove\nlogs")
+        remove_btn = QPushButton("")
         remove_btn.clicked.connect(lambda: self.removeLogs('resources/logs'))
-        remove_btn.setFixedWidth(180) # 너비만 고정
+        remove_btn.setFixedWidth(100) # 너비만 고정
         remove_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         main_layout.addWidget(remove_btn, 1) # 1은 stretch 비율
 
@@ -262,14 +278,15 @@ class LogViewer(QWidget):
 
                         # 열 너비 지정
                         desired_width = int(self.total_width * column_ratios[col])
-                        final_width = max(desired_width, min_widths[col])
+                        final_width = min(desired_width, min_widths[col])
                         self.table.setColumnWidth(col, final_width)
 
     def openFolder(self, folder_path='../resources/logs'):
         """ 
         폴더 열기 메서드
         """
-        folder_path = os.path.join(folder_path, str(self.cam_num))  # 여기에 열고 싶은 폴더 경로 입력
+        # folder_path = os.path.join(folder_path, str(self.cam_num))  # 여기에 열고 싶은 폴더 경로 입력
+        folder_path = folder_path+str(self.cam_num)  # 여기에 열고 싶은 폴더 경로 입력
 
         if os.path.exists(folder_path):
             subprocess.Popen(["explorer", folder_path])
@@ -277,32 +294,109 @@ class LogViewer(QWidget):
         else:
             print(f"경로가 존재하지 않습니다. {folder_path}")
     
-    def removeLogs(self, folder_path='../resources/logs'):
-        """ 
-        로그 삭제 메서드 
-        """
-        rfolder_path = os.path.join(folder_path, str(self.cam_num))  # 경로.
+    # def removeLogs(self, folder_path='resources/logs'):
+    #     """ 
+    #     로그 삭제 메서드 
+    #     """
+    #     rfolder_path = os.path.join(folder_path, str(self.cam_num))  # 경로.
         
-        reply = remove_custom_messagebox(self)
+    #     reply = remove_custom_messagebox(self)
         
-        if reply == QMessageBox.Yes:
-            print(f'removeLogs cam{self.cam_num}')
-            if os.path.exists(rfolder_path):
-                for file in os.listdir(rfolder_path):
-                    os.remove(rfolder_path+'/'+file)
-                    self.loadLogs()
+    #     if reply == QMessageBox.Yes:
+    #         print(f'removeLogs cam{self.cam_num}')
+    #         if os.path.exists(rfolder_path):
+    #             for file in os.listdir(rfolder_path):
+    #                 os.remove(rfolder_path+'/'+file)
+    #                 self.loadLogs()
+    #         else:
+    #             print(f"경로가 존재하지 않습니다. {rfolder_path}")
+    #     else:
+    #         print(f'canceled: removeLogs cam{self.cam_num} ')
+    
+    
+    def removeLogs(self, folder_path='resources/logs'):
+            """ 
+            로그 삭제 메서드: 잠기지 않은 파일만 삭제하고 잠긴 파일은 건너뜁니다.
+            """
+            rfolder_path = os.path.join(folder_path, str(self.cam_num)) 
+            
+            reply = QMessageBox.No # 기본값을 No로 설정 (메시지 박스가 없는 경우 대비)
+            # remove_custom_messagebox 함수 호출 (클래스 메서드이거나 전역 함수일 수 있음)
+            if hasattr(self, 'remove_custom_messagebox'):
+                reply = self.remove_custom_messagebox(self)
+            elif 'remove_custom_messagebox' in globals():
+                reply = remove_custom_messagebox(self)
             else:
-                print(f"경로가 존재하지 않습니다. {rfolder_path}")
-        else:
-            print(f'canceled: removeLogs cam{self.cam_num} ')
+                print("경고: remove_custom_messagebox 함수를 찾을 수 없습니다. 삭제를 중단합니다.")
+                return # 사용자 확인 없이 삭제를 진행하지 않음
 
+            if reply == QMessageBox.Yes:
+                print(f'removeLogs cam{self.cam_num} 시작')
+                if os.path.exists(rfolder_path):
+                    # ⭐ 중요: 파일 삭제를 시도하기 전에 가능한 모든 VideoWriter를 해제해야 합니다. ⭐
+                    # 이 함수는 removeLogs를 호출하는 곳에서 명시적으로 호출하거나,
+                    # removeLogs 시작 시점에 자동으로 호출되도록 구성할 수 있습니다.
+                    # self.release_all_video_writers() 
+
+                    files_to_remove = os.listdir(rfolder_path)
+                    deleted_count = 0
+                    failed_to_delete = []
+                    
+                    for file_name in files_to_remove:
+                        file_path = os.path.join(rfolder_path, file_name)
+                        if os.path.isfile(file_path): # 파일인지 확인 (폴더는 삭제하지 않음)
+                            try:
+                                os.remove(file_path)
+                                print(f"파일 삭제 성공: {file_name}")
+                                deleted_count += 1
+                            except PermissionError:
+                                print(f"PermissionError: 파일 사용 중으로 삭제 실패: '{file_name}'")
+                                failed_to_delete.append(file_name)
+                                # 잠긴 파일은 건너뛰고 다음 파일로 진행
+                            except Exception as e:
+                                print(f"파일 삭제 중 예상치 못한 오류 발생: '{file_name}' - {e}")
+                                failed_to_delete.append(file_name)
+                        else:
+                            print(f"경고: '{file_name}'은(는) 파일이 아니므로 건너뜁니다.")
+
+                    # 모든 파일 삭제 시도 후 결과 요약
+                    if deleted_count > 0:
+                        print(f"총 {deleted_count}개의 파일을 삭제했습니다.")
+                    if failed_to_delete:
+                        print(f"다음 파일들은 삭제에 실패했습니다 (다른 프로그램이 사용 중일 수 있습니다):")
+                        for f in failed_to_delete:
+                            print(f"- {f}")
+                        # QMessageBox.warning(self, "삭제 완료 (일부 실패)", 
+                        #                     "일부 로그 파일을 삭제할 수 없었습니다. "
+                        #                     "다른 프로그램이 사용 중일 수 있으니 확인해 주세요:\n" + "\n".join(failed_to_delete))
+                    else:
+                        # QMessageBox.information(self, "삭제 완료", "모든 로그 파일을 성공적으로 삭제했습니다.")
+                        pass
+                    
+                    # 모든 파일 삭제 시도 후, 폴더가 비어있으면 삭제 (선택 사항)
+                    # 이 부분은 옵션이며, 비어있는 폴더만 삭제합니다.
+                    # try:
+                    #     if not os.listdir(rfolder_path): # 폴더가 비어있는지 다시 확인
+                    #         os.rmdir(rfolder_path) # 비어있는 폴더 삭제
+                    #         print(f"빈 폴더 삭제 성공: {rfolder_path}")
+                    # except OSError as e: # 폴더가 비어있지 않거나 다른 문제로 삭제 실패 시
+                    #     print(f"폴더 삭제 실패 또는 폴더가 비어있지 않음: {rfolder_path} - {e}")
+                    
+                    # UI에 로그 목록을 새로고침 (클래스 내부 함수 또는 콜백)
+                    self.loadLogs() 
+
+                # else:
+                #     print(f"경로가 존재하지 않습니다. {rfolder_path}")
+                #     QMessageBox.information(self, "정보", f"삭제할 경로가 존재하지 않습니다: {rfolder_path}")
+            else:
+                print(f'삭제 작업 취소: removeLogs cam{self.cam_num}')
 
 
     def onCellClicked(self, row, column):
         """ 
         테이블의 셀 클릭시 영상 재생하는 메서드
         """
-        if column == 4:
+        if column == 3:
             # timestamp = self.table.item(row, 0).text()
             filename = sorted([x for x in os.listdir(self.dir) if x.endswith('mp4')])[row]
             video_path = os.path.join(self.dir, f"{filename}")
@@ -331,4 +425,12 @@ class LogViewer(QWidget):
         cv2.destroyAllWindows()
         
     def append_log_text(self, text):
-        self.logViewer.appendPlainText(text)
+        # self.logViewer.appendPlainText(text)
+        # ⭐ 멤버 변수인 log_text_edit의 appendPlainText 메서드 사용 ⭐
+        self.log_text_edit.appendPlainText(text)
+        
+        # 스크롤을 항상 최하단으로 내리는 옵션 (선택 사항, 사용자 편의성 증대)
+        # self.log_text_edit.verticalScrollBar().setValue(self.log_text_edit.verticalScrollBar().maximum())
+        
+        print(f"LogViewer: '{text}' 추가됨.")
+

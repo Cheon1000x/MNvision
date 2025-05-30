@@ -3,18 +3,21 @@
 import cv2
 import os
 import threading
+from PyQt5.QtCore import QObject, pyqtSignal
 from datetime import datetime
 
-class VideoSaver:
-    """
-    이벤트 발생 시 영상과 로그를 저장하는 클래스 (스레드 지원)
-    """
+class VideoSaver(QObject):
+    clip_saved_signal = pyqtSignal(int)
+    log_appended_signal = pyqtSignal(str) # ⭐ 새로운 시그널 추가 ⭐
+
     def __init__(self, cam_num, save_dir="resources/logs/", fps=30, log_viewer=None):
+        super().__init__()
         self.cam_num = cam_num
         self.fps = fps
-        self.log_viewer = log_viewer
+        # self.log_viewer = log_viewer # ⭐ 직접 참조하지 않도록 제거 (옵션) ⭐
         self.save_dir = os.path.join(save_dir, str(cam_num))
         os.makedirs(self.save_dir, exist_ok=True)
+        # ...
 
     def save_clip(self, frames, event_time, label="event", iou=0.0):
         if not frames:
@@ -35,6 +38,8 @@ class VideoSaver:
             out.release()
 
             print(f"[INFO] 🎞️ 영상 저장 완료: {save_path}")
+            self.clip_saved_signal.emit(self.cam_num)
+            
             return save_path
         except Exception as e:
             print(f"[ERROR] 영상 저장 중 오류: {e}")
@@ -50,10 +55,10 @@ class VideoSaver:
             with open(save_path, 'w', encoding='utf-8') as f:
                 f.write(log_text)
 
-            if self.log_viewer:
-                self.log_viewer.append_log_text(log_text)
+             # if self.log_viewer: # ⭐ 이 부분 제거 ⭐
+            #     self.log_viewer.append_log_text(log_text) # ⭐ 직접 호출 대신 시그널 사용 ⭐
 
-            print(f"[INFO] 📝 로그 저장 완료: {save_path}")
+            self.log_appended_signal.emit(log_text) # ⭐ 시그널 emit ⭐
             return save_path
         except Exception as e:
             print(f"[ERROR] 로그 저장 실패: {e}")

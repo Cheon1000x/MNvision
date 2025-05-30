@@ -5,7 +5,7 @@ import threading
 import os
 
 class AlertManager(QObject):
-    on_alert_signal = pyqtSignal(str)  # 클래스 변수로 시그널 정의
+    on_alert_signal = pyqtSignal(str, int)  # 클래스 변수로 시그널 정의
 
     def __init__(self):
         super().__init__()

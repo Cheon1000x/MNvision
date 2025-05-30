@@ -16,8 +16,7 @@ def remove_custom_messagebox(parent):
     for button in msg_box.findChildren(QPushButton):
         button.setStyleSheet("""
             QPushButton {
-                background-color: #444;
-                color: white;
+                color: #00D2B5;
                 width:100px;
                 height:50px;
                 padding: 6px 12px;
@@ -26,7 +25,7 @@ def remove_custom_messagebox(parent):
                 font-size: 25px;
             }
             QPushButton:hover {
-                background-color: #ADFF2F;
+                background-color: #00D2B5;
                 color: black;
             }   
         """)
@@ -42,7 +41,6 @@ def remove_custom_messagebox(parent):
         QMessageBox {
             width:300px;
             height:200px;
-            background-color: #161616;
             color: white;
             font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
             font-weight: bold;

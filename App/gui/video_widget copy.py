@@ -8,7 +8,7 @@ from datetime import datetime
 import time
 from recorder.video_buffer import VideoBuffer
 from recorder.saver import VideoSaver
-from detection.detector import Detector
+from App.detection.detector_backup import Detector
 from detection.postprocessor import PostProcessor
 from gui.log_viewer import LogViewer
 
