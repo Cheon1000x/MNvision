@@ -24,7 +24,7 @@ class VideoThread(QThread):
     frame_ready = pyqtSignal(np.ndarray)
     event_triggered = pyqtSignal(float, int, str, float) ## event_time, camnum, label, iou
     mute_triggered = pyqtSignal(str, str, int)
-    on_triggered = pyqtSignal(str, str, KeyboardInterrupt)
+    on_triggered = pyqtSignal(str, str, int)
     info_triggered = pyqtSignal(list, int)
     overlap_triggered = pyqtSignal(str)
     # super.roi_update.emit()
@@ -88,7 +88,7 @@ class VideoThread(QThread):
             self.video_buffer.add_frame(frame.copy())
 
             ## 3프레임마다 1개씩 모델에 전달.
-            if self.frame_count % 10 != 0:
+            if self.frame_count % 2 != 0:
                 continue
             
             
@@ -165,24 +165,24 @@ class VideoThread(QThread):
 
             # --- ⭐⭐ 이 부분의 로직을 수정합니다. ⭐⭐ ---
             ## 사람 - ROI 영역 체크
-            person_roi_detected, person_roi_iou = self.check_person_roi_overlap(results)
-            if person_roi_detected or self.is_within_roi(results):
-                # ⭐ 쿨다운과 관계없이 즉시 알람 발생 ⭐
-                alert_manager.on_alert_signal.emit("inroi", self.cam_num) 
+            # person_roi_detected, person_roi_iou = self.check_person_roi_overlap(results)
+            # if person_roi_detected or self.is_within_roi(results):
+            #     # ⭐ 쿨다운과 관계없이 즉시 알람 발생 ⭐
+            #     alert_manager.on_alert_signal.emit("inroi", self.cam_num) 
                 
-                # ⭐ 다른 이벤트는 쿨다운에 걸리지 않으면 트리거 ⭐
-                if self.can_trigger_event(): 
-                    self.event_triggered.emit(time.time(), self.cam_num, "person-roi overlap", person_roi_iou)
+            #     # ⭐ 다른 이벤트는 쿨다운에 걸리지 않으면 트리거 ⭐
+            #     if self.can_trigger_event(): 
+            #         self.event_triggered.emit(time.time(), self.cam_num, "person-roi overlap", person_roi_iou)
             
-            ## 사람 - 지게차 IOU 체크
-            overlap_detected, iou_val = self.check_person_forklift_overlap(results)
-            if overlap_detected:
-                # ⭐ 쿨다운과 관계없이 즉시 알람 발생 ⭐
-                alert_manager.on_alert_signal.emit("overlap", self.cam_num) 
+            # ## 사람 - 지게차 IOU 체크
+            # overlap_detected, iou_val = self.check_person_forklift_overlap(results)
+            # if overlap_detected:
+            #     # ⭐ 쿨다운과 관계없이 즉시 알람 발생 ⭐
+            #     alert_manager.on_alert_signal.emit("overlap", self.cam_num) 
                 
-                # ⭐ 다른 이벤트는 쿨다운에 걸리지 않으면 트리거 ⭐
-                if self.can_trigger_event():
-                    self.event_triggered.emit(time.time(), self.cam_num, "person-forklift overlap", iou_val)
+            #     # ⭐ 다른 이벤트는 쿨다운에 걸리지 않으면 트리거 ⭐
+            #     if self.can_trigger_event():
+            #         self.event_triggered.emit(time.time(), self.cam_num, "person-forklift overlap", iou_val)
 
             # print('inroi_result', self.is_within_roi(results))
 
@@ -245,8 +245,8 @@ class VideoThread(QThread):
             if d['class_name'] != 'person':
                 continue
 
-            person_polygon = d.get('polygons', [[]])[0]
-            for (x, y) in person_polygon:
+            person_box = d.get('box', [[]])[0]
+            for (x, y) in person_box:
                 if cv2.pointPolygonTest(roi_contour, (x, y), False) >= 0:
                     return True  # 한 점이라도 ROI 안이면 True
 

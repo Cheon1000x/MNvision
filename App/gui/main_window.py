@@ -24,18 +24,22 @@ class MainWindow(QMainWindow):
         self.video_widgets = {}
         self.roi_editors = {}
         self.info_widgets = {}
-        self.log_viewers = {}  # 실제 사용하도록 수정
-        self.reset_timers = {}  # 여기서 초기화
+        self.log_viewers = {}  
+        self.reset_timers = {} 
         self.spotlights = {}
         self.onoff_labels = {}
         self.event_labels = {}  
         self.info_labels = {}
+        
+        self.old_pos = None 
+        # QMainWindow는 frameGeometry()를 사용하면 창 테두리까지 포함한 정확한 크기를 얻습니다.
+        self.normal_geometry = self.geometry() 
+        
         self.setWindowFlags(Qt.FramelessWindowHint) 
         screen = QGuiApplication.primaryScreen()
         self.size = screen.availableGeometry()
         self.setStyleSheet("background-color: #161616;")
         self.setWindowTitle("Forklift Detection")
-        
         
         self.setMinimumSize(400, 400)
         self.setContentsMargins(0,0,0,0)
@@ -49,18 +53,16 @@ class MainWindow(QMainWindow):
         ## UI 영역 설정
         self.ui_area = QWidget()
         ui_layout = QHBoxLayout(self.ui_area)
-        # self.ui_area.setFixedHeight(self.size.height())
+        ui_layout.setContentsMargins(50,0,0,0)
+        self.ui_area.setFixedHeight(50)
         self.ui_area.setStyleSheet("background-color: #161616;")
-        self.ui_area.setContentsMargins(0,0,0,0)
+        # self.ui_area.setStyleSheet("background-color: #ffffff;")
         main_layout.addWidget(self.ui_area, alignment=Qt.AlignCenter) 
         # 스타일시트 통합
         self.btn_design = """
             background-color: 	#161616	;
             color: #000000;
             border-radius:  5px;
-            font-size: 28px;
-            font-family: 'Pretendard Variable', 'Helvetica Neue', Arial, sans-serif;
-            font-weight: bold;
         """
         
         self.btn_hover = """
@@ -69,27 +71,36 @@ class MainWindow(QMainWindow):
                 color: #00D2B5;
                 border: 3px solid #00D2B5;
                 border-radius: 5px;
-                font-size: 28px;
-                font-family: 'Pretendard Variable', 'Helvetica Neue', Arial, sans-serif;
-                font-weight: bold;
             }
             QPushButton:hover {
                 background-color: #123332;
                 border: 3px solid #00D2B5;
-                color: #00D2B5;
                 border-radius:5px;
             }
             QPushButton:pressed {
                 background-color: #00D2B5;
                 border: 3px solid #00D2B5;
-                color: #000000;
                 border-radius:5px;
             }
         """
         
         # Start 버튼
-        start_btn = QPushButton("")
-        start_btn.clicked.connect(self.on_start)
+        # logo
+        logo_btn = QPushButton("")
+        logo_btn.setFlat(True)
+        logo_btn.setEnabled(False) # 클릭 불가능하게
+        # Config 버튼
+        logo_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-image: url(resources/icons/logo_wide.png);
+                background-repeat: no-repeat;
+                background-position: center;
+            }}
+        """)
+        logo_btn.setFixedSize(210,50)
+        ui_layout.addWidget(logo_btn, alignment=Qt.AlignLeft)
+        
+        
         config_btn = QPushButton("")
         minimize_btn = QPushButton("")
         minimize_btn.clicked.connect(self.showMinimized)
@@ -99,38 +110,16 @@ class MainWindow(QMainWindow):
         exit_btn = QPushButton("")
         exit_btn.clicked.connect(self.close)
         
-        start_btn.setCursor(QCursor(Qt.PointingHandCursor))
         config_btn.setCursor(QCursor(Qt.PointingHandCursor))
         minimize_btn.setCursor(QCursor(Qt.PointingHandCursor))
         maximize_btn.setCursor(QCursor(Qt.PointingHandCursor))
         exit_btn.setCursor(QCursor(Qt.PointingHandCursor))
         
-        start_btn.setStyleSheet(f"""
-            QPushButton {{
-                {self.btn_design}
-                background-image: url(resources/icons/play_c.png);
-                background-repeat: no-repeat;
-                background-position: center;
-            }}
-            QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                color: #00D2B5;
-                background-image: url(resources/icons/play_c.png);
-            }}
-            QPushButton:pressed {{
-                background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                color: #000000;
-                background-image: url(resources/icons/play.png);
-            }}
-        """)
-
         # Config 버튼
         config_btn.setStyleSheet(f"""
             QPushButton {{
                 {self.btn_design}
-                background-image: url(resources/icons/cog_gc.png);
+                background-image: url(resources/icons/config_m.png);
                 background-repeat: no-repeat;
                 background-position: center;
             }}
@@ -138,13 +127,13 @@ class MainWindow(QMainWindow):
                 background-color: #123332;
                 border: 3px solid #00D2B5;
                 color: #00D2B5;
-                background-image: url(resources/icons/cog_c.png);
+                background-image: url(resources/icons/config_m.png);
             }} 
             QPushButton:pressed {{
                 background-color: #00D2B5;
                 border: 3px solid #00D2B5;
                 color: #000000;
-                background-image: url(resources/icons/cog_bc.png);
+                background-image: url(resources/icons/config_m.png);
             }}
         """)
 
@@ -152,7 +141,7 @@ class MainWindow(QMainWindow):
         minimize_btn.setStyleSheet(f"""
             QPushButton {{
                 {self.btn_design}
-                background-image: url(resources/icons/Vector__c.png);
+                background-image: url(resources/icons/mini_m.png);
                 background-repeat: no-repeat;
                 background-position: center;
             }}
@@ -160,13 +149,13 @@ class MainWindow(QMainWindow):
                 background-color: #123332;
                 border: 3px solid #00D2B5;
                 color: #00D2B5;
-                background-image: url(resources/icons/Vector__c.png);
+                background-image: url(resources/icons/mini_m.png);
             }} 
             QPushButton:pressed {{
                 background-color: #00D2B5;
                 border: 3px solid #00D2B5;
                 color: #000000;
-                background-image: url(resources/icons/Vector__.png);
+                background-image: url(resources/icons/mini_m.png);
             }}
         """)
         
@@ -174,7 +163,7 @@ class MainWindow(QMainWindow):
         maximize_btn.setStyleSheet(f"""
             QPushButton {{
                 {self.btn_design}
-                background-image: url(resources/icons/Vector_mc.png);
+                background-image: url(resources/icons/max_m.png);
                 background-repeat: no-repeat;
                 background-position: center;
             }}
@@ -182,13 +171,13 @@ class MainWindow(QMainWindow):
                 background-color: #123332;
                 border: 3px solid #00D2B5;
                 color: #00D2B5;
-                background-image: url(resources/icons/Vector_mc.png);
+                background-image: url(resources/icons/max_m.png);
             }} 
             QPushButton:pressed {{
                 background-color: #00D2B5;
                 border: 3px solid #00D2B5;
                 color: #000000;
-                background-image: url(resources/icons/Vector_m.png);
+                background-image: url(resources/icons/max_m.png);
             }}
         """)
         
@@ -196,7 +185,7 @@ class MainWindow(QMainWindow):
         exit_btn.setStyleSheet(f"""
             QPushButton {{
                 {self.btn_design}
-                background-image: url(resources/icons/Vector_c.png);
+                background-image: url(resources/icons/close_m.png);
                 background-repeat: no-repeat;
                 background-position: center;
             }}
@@ -204,22 +193,21 @@ class MainWindow(QMainWindow):
                 background-color: #123332;
                 border: 3px solid #00D2B5;
                 color: #00D2B5;
-                background-image: url(resources/icons/Vector_c.png);
+                background-image: url(resources/icons/close_m.png);
             }}
             QPushButton:pressed {{
                 background-color: #00D2B5;
                 border: 3px solid #00D2B5;
                 color: #000000;
-                background-image: url(resources/icons/Vector.png);
+                background-image: url(resources/icons/close_m.png);
             }}
         """)
         
-        start_btn.setFixedSize(60,40)
-        config_btn.setFixedSize(60,40)
-        minimize_btn.setFixedSize(60,40)
-        maximize_btn.setFixedSize(60,40)
-        exit_btn.setFixedSize(60,40)
-        ui_layout.addWidget(start_btn)
+        config_btn.setFixedSize(60,50)
+        minimize_btn.setFixedSize(60,50)
+        maximize_btn.setFixedSize(60,50)
+        exit_btn.setFixedSize(60,50)
+        
         ui_layout.addWidget(config_btn)
         ui_layout.addWidget(minimize_btn)
         ui_layout.addWidget(maximize_btn)
@@ -235,6 +223,8 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.video_area)
         self.main_layout = main_layout
         
+        time.sleep(1)
+        self.on_start()
         # --- 창 드래그 기능 구현 ---
     def mousePressEvent(self, event: QMouseEvent):
         # 마우스 왼쪽 버튼이 눌렸을 때만 처리
@@ -288,8 +278,7 @@ class MainWindow(QMainWindow):
         """
         
         self.main_layout.removeWidget(self.ui_area)
-        self.main_layout.insertWidget(0, self.ui_area, alignment=Qt.AlignRight)
-        self.ui_area.setFixedHeight(50)
+        self.main_layout.insertWidget(0, self.ui_area)
         self.setMinimumSize(self.size.width(), self.size.height())
         self.showFullScreen()
         
@@ -300,36 +289,18 @@ class MainWindow(QMainWindow):
             cam_widget = QWidget()
             cam_layout = QVBoxLayout()
             cam_layout.setContentsMargins(20, 20, 0, 20)
-            cam_layout.setSpacing(0)
+            cam_layout.setSpacing(20)
             
             cam_widget.setStyleSheet(""" 
                 background-color: #171D35;
-                border-radius:  5px;
+                border-radius:  10px;
             """)
             cam_widget.setLayout(cam_layout)
-
-            # CAM 이름 버튼
-            cam_name_btn = QPushButton(f"CAM {cam_id}")
-            cam_name_btn.setEnabled(False)
-            cam_name_btn.setStyleSheet("""
-                QPushButton {
-                    border-bottom: none;
-                    border-top-left-radius:  5px;
-                    border-top-right-radius:  5px;
-                    background-color: #171D35;
-                    color: #E6E6E6;
-                    font-size: 28px;
-                    font-family: 'Pretendard Variable', 'Helvetica Neue', Arial, sans-serif;
-                    font-weight: bold;
-                }
-            """)
-            cam_name_btn.setFixedWidth(150)
-            cam_layout.addWidget(cam_name_btn)
 
             # 비디오 위젯
             vw = VideoWidget(cam_num=cam_id, video_path=f"resources/videos/sample{cam_id}.avi")
             vw.setFixedSize(int((self.size.width()-180) * 0.5), int((self.size.width()-180) * 9/32))
-            vw.setStyleSheet("border: 2px solid #000000;")
+            # vw.setStyleSheet("border: 2px solid #000000;")
             self.video_widgets[cam_id] = vw
 
             self.create_roi_editor(cam_id, vw)
@@ -347,49 +318,87 @@ class MainWindow(QMainWindow):
             # 정보 영역
             info_widget = QWidget()
             info_widget.setStyleSheet("""
-                background-color: #1D2848; 
+                background-color: #161616; 
                 color: #E6E6E6; 
                 border-radius: 20px; 
                 font: 20px 'Pretendard Variable', 'Helvetica Neue', Arial, sans-serif;
             """)
-            info_widget.setFixedSize(int((self.size.width()-180) * 0.5), 100)
+            info_widget.setFixedSize(int((self.size.width()-180) * 0.5), 130)
             info_layout = QHBoxLayout(info_widget)
             self.info_widgets[cam_id] = info_widget
 
+            
+            info00w = QWidget()
+            info00 = QVBoxLayout(info00w)
             # 신호등
-            spotlight = design.CircleWidget()
-            spotlight.setCircleColor(Qt.green)
+            cam_name_btn = QPushButton()
+            cam_name_btn.setEnabled(False)
+            cam_name_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-image: url(resources/icons/cam{cam_id}.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    border-radius:  5px;
+                }}
+            """)
+            cam_name_btn.setFixedSize(120,45)
+            info00.addWidget(cam_name_btn)
+            
+            spotlight =  QPushButton()
+            spotlight.setEnabled(False)
+            spotlight.setStyleSheet(f"""
+                QPushButton {{
+                    background-image: url(resources/icons/safe.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    border-radius:  5px;
+                
+                }}
+            """)
             info_layout.addWidget(spotlight)
             self.spotlights[cam_id] = spotlight
+            spotlight.setFixedSize(120,45)
+            info00.addWidget(spotlight)
+            
             
             # 왼쪽 정보
-            info_left = QVBoxLayout()
+            info01w = QWidget()
+            info01 = QVBoxLayout(info01w)
             info1 = QLabel(f"mute/on")
             info2 = QLabel(f"event_type")
             for lbl in (info1, info2):
                 lbl.setStyleSheet("color: #E6E6E6;")
-                info_left.addWidget(lbl)
+                info01.addWidget(lbl)
             self.onoff_labels[cam_id] = info1
             self.event_labels[cam_id] = info2
 
             # 가운데 정보
-            info_center = QVBoxLayout()
+            info02w = QWidget()
+            info02 = QVBoxLayout(info02w)
             info3 = QLabel("")
             info4 = QLabel("")
             for lbl in (info3, info4):
                 lbl.setStyleSheet("color: #E6E6E6;")
-                info_center.addWidget(lbl)
+                info02.addWidget(lbl)
             self.info_labels[cam_id] = (info3, info4)
             
             # 버튼
             reset_btn = QPushButton("")
-            reset_btn.setStyleSheet(self.btn_hover)
-            reset_btn.setFixedSize(80, 80)
+            reset_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-image: url(resources/icons/reset.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    border-radius:  5px;
+                }}
+            """)
+            reset_btn.setFixedSize(100, 100)
             reset_btn.clicked.connect(lambda _, cid=cam_id: self.reset_roi(cid))
 
-            info_layout.addLayout(info_left)
-            info_layout.addLayout(info_center)
-            info_layout.addWidget(reset_btn)
+            info_layout.addWidget(info00w, alignment=Qt.AlignCenter)
+            info_layout.addWidget(info01w,alignment=Qt.AlignCenter)
+            info_layout.addWidget(info02w, alignment=Qt.AlignCenter)
+            info_layout.addWidget(reset_btn, alignment=Qt.AlignCenter)
 
             # LogViewer
             lv = LogViewer(cam_id)
@@ -405,8 +414,6 @@ class MainWindow(QMainWindow):
                 roi_editor.show()
                 roi_editor.raise_()
 
-
-
             # 시그널 연결
             vw.video_saver.clip_saved_signal.connect(lv.loadLogs)
             vw.vthread.on_triggered.connect(self.onoff_info)
@@ -415,7 +422,6 @@ class MainWindow(QMainWindow):
             alert_manager.on_alert_signal.connect(self.lightControl, type=Qt.QueuedConnection)
             # vw.vthread.event_triggered.connect(lambda: self.make_delayed_loader(lv)())
             vw.vthread.info_triggered.connect(self.handle_result)
-
            
             if vw.video_saver: # video_saver 인스턴스가 존재한다면
                 vw.video_saver.log_appended_signal.connect(lv.append_log_text, type=Qt.QueuedConnection)
@@ -428,6 +434,7 @@ class MainWindow(QMainWindow):
 
      
     def lightControl(self, str, cam_num):
+        pass
         print(f"\n[lightControl 호출 시작] cam_num: {cam_num}") 
 
         # 1. target 객체 유효성 검사
@@ -442,7 +449,16 @@ class MainWindow(QMainWindow):
 
         # 2. 빨간불로 설정
         print(f"  cam_num {cam_num}의 스포트라이트를 빨간색으로 설정 시도.")
-        target.setCircleColor(Qt.red) # 이 메서드 내부에 print문 추가하여 실제 호출되는지 확인
+
+        target.setStyleSheet(f"""
+                QPushButton {{
+                    background-image: url(resources/icons/danger.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    border-radius:  5px;
+                    background-color: #171D35;
+                }}
+            """)
 
         # 3. 기존 타이머가 있다면 멈춤
         if cam_num in self.reset_timers:
@@ -461,7 +477,15 @@ class MainWindow(QMainWindow):
         
         def reset_to_green():
             print(f"[타이머 만료] cam_num: {cam_num} - 초록불로 리셋 및 'no event' 설정.")
-            target.setCircleColor(Qt.green)
+            target.setStyleSheet(f"""
+                QPushButton {{
+                    background-image: url(resources/icons/safe.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    border-radius:  5px;
+                    background-color: #171D35;
+                }}
+            """)
             event_label = self.event_labels.get(cam_num, None)
             if event_label:
                 event_label.setText("no event")

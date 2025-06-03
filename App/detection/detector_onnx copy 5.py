@@ -14,7 +14,10 @@ import torch.nn.functional as F
 
 
 class Detector:
-    def __init__(self, onnx_path="resources/models/yolov8_custom_fixed.onnx", conf_threshold=0.65, iou_threshold=0.45):
+    # def __init__(self, onnx_path="resources/models/ver1_test_13q.onnx", conf_threshold=0.65, iou_threshold=0.45):
+    # def __init__(self, onnx_path="resources/models/ver1_test_13_640.onnx", conf_threshold=0.65, iou_threshold=0.45):
+    def __init__(self, onnx_path="resources/models/ver1_test_13_640.onnx", conf_threshold=0.65, iou_threshold=0.45):
+    # def __init__(self, onnx_path="resources/models/yolov8_seg_custom_opset20.onnx"):
         self.session = ort.InferenceSession(onnx_path, providers=["CPUExecutionProvider"])
         self.conf_threshold = conf_threshold
         self.iou_threshold = iou_threshold
@@ -22,10 +25,20 @@ class Detector:
         # ONNX 모델의 입력 이름 가져오기
         self.input_name = self.session.get_inputs()[0].name
         
-        self.input_height = 384
+        # ONNX 모델의 입력 shape에서 height와 width 가져오기
+        # get_inputs()[0].shape는 [batch_size, channels, height, width] 형태
+        # 따라서 height는 인덱스 2, width는 인덱스 3
+        # 만약 동적 shape로 변환되어 'height', 'width'와 같은 문자열이 나온다면,
+        # 모델 변환 시 문제가 있었을 수 있습니다.
+        # 일반적으로는 640, 640 같은 정수 값이 들어와야 합니다.
+        # self.input_height = self.session.get_inputs()[0].shape[2] # 640
+        # self.input_width = self.session.get_inputs()[0].shape[3]  # 640
+        self.input_height = 640
         self.input_width = 640
         self.padding_color = 114 
-        
+        # print(self.session.get_inputs()[0].shape)
+        # print(self.input_height)
+        # print(self.input_width)
         try:
             if not os.path.exists(onnx_path):
                 print(f"오류: ONNX 모델 파일이 다음 경로에 없습니다: {onnx_path}")
@@ -38,10 +51,14 @@ class Detector:
             raise 
         
         self.class_names = [
-            "forklift-right",
-            "forklift-left",
             "forklift-vertical",
+            "forklift-left",
+            "forklift-right",
             "forklift-horizontal",
+            "forklift-vertical(cam2)",
+            "forklift-left(cam2)",
+            "forklift-right(cam2)",
+            "forklift-horizontal(cam2)",
             "person",
             "object",
         ]
@@ -77,7 +94,6 @@ class Detector:
         # 상단과 하단에 균등하게 패딩을 분배합니다.
         pad_top = (self.input_height - target_height) // 2
         pad_bottom = self.input_height - target_height - pad_top
-        # print(pad_top, pad_bottom)
         
         # cv2.copyMakeBorder(src, top, bottom, left, right, borderType, value)
         padded_img = cv2.copyMakeBorder(
@@ -99,18 +115,12 @@ class Detector:
         # 또한 0-255 범위의 픽셀 값을 0.0-1.0 범위로 정규화합니다.
         img_input = np.expand_dims(img_input, axis=0).astype(np.float32) / 255.0
 
-        # print(img_input.shape, scale, (pad_top, pad_bottom))
         return img_input, scale, (pad_top, pad_bottom)
 
 
     def detect_objects(self, frame, conf_thres=0.00001, iou_thres=0.4):
         img_input, scale, (pad_top, pad_bottom) = self.preprocess(frame) 
-        ## img_input  (1, 3, 360, 640)
-        # img_input = img_input.transpose(0, 1, 3, 2)
-        print('check', img_input.shape)
-        
         original_h, original_w = frame.shape[:2] 
-        
         outputs = self.session.run(None, {self.input_name: img_input})
         
         # process_output에 스케일과 패딩 정보 전달
@@ -132,15 +142,15 @@ class Detector:
             conf = scores[i]
             cls_id = labels[i]
             class_name = self.class_names[cls_id] if cls_id < len(self.class_names) else str(cls_id)
-            # mask = masks[i]
+            mask = masks[i]
 
             # 마스크에서 폴리곤 추출
-            # contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             polygons = []
-            # for cnt in contours:
-            #     polygon = [(int(x), int(y)) for [[x, y]] in cnt]
-            #     if len(polygon) > 2:
-            #         polygons.append(polygon)
+            for cnt in contours:
+                polygon = [(int(x), int(y)) for [[x, y]] in cnt]
+                if len(polygon) > 2:
+                    polygons.append(polygon)
 
             detections.append({
                 'box': (float(x1), float(y1), float(x2), float(y2)),
@@ -152,17 +162,26 @@ class Detector:
         return detections
 
    
+    # def process_output(self, output0, output1, conf_threshold=0.00005, iou_threshold=0.5):
+    # def postprocess(self, outputs, original_width, original_height, scale, padding):
     def postprocess(self, outputs, original_width, original_height, scale, padding):
         # output0: (1, 47, 8400) -> (47, 8400)
         # output1: (1, 32, H, W) -> (32, H, W)
 
         pred_raw = outputs[0].squeeze(0)
+        mask_features = outputs[1].squeeze(0)
+
         # print(f"DEBUG: pred_raw shape (after squeeze): {pred_raw.shape}")
         # print(f"DEBUG: mask_features shape: {mask_features.shape}")
         # DEBUG: pred_raw shape (after squeeze): (47, 19320)
         # DEBUG: mask_features shape: (32, 184, 320)
         
         pred = pred_raw.T 
+        # pred는 (N_proposals, N_features) 형태
+        # N_features = 4 (bbox) + num_classes (class_scores) + num_mask_coefficients (mask_coeffs)
+        # pred[:, 0:4] = x, y, w, h         4
+        # pred[:, 4 : 4 + num_classes] = class scores (objectness 포함)         14
+        # pred[:, 4 + num_classes : ] = mask coefficients       14
         
         # 박스 좌표 (4개)
         boxes_raw = pred[:, 0:4] # (N_proposals, 4) - xywh
@@ -241,8 +260,54 @@ class Detector:
         boxes_final[:, 2] = np.maximum(boxes_final[:, 2], boxes_final[:, 0] + 1)
         boxes_final[:, 3] = np.maximum(boxes_final[:, 3], boxes_final[:, 1] + 1)
 
-        ## seg 모델 잔재. 사용하진 않으나 다른 입력위치도 수정해야 하므로 유지
         final_masks = []
         
+        # 시그모이드 함수 정의 (Postprocess 내부에 정의)
+        def sigmoid_np(x):
+            return 1 / (1 + np.exp(-x))
+        
+        for i in range(mask_coeffs_final.shape[0]):
+            coeff_np = mask_coeffs_final[i, :] # 현재 객체의 마스크 계수
+
+            # 마스크 특징과 계수를 곱하여 원시 마스크 로짓 생성 (선형 조합)
+            # mask_features: (C, H_mask, W_mask) -> (C, H_mask*W_mask)로 펼쳐서 내적
+            # coeff_np: (C,)
+            mask_logit = np.dot(coeff_np, mask_features.reshape(mask_features.shape[0], -1))
+            mask_logit = mask_logit.reshape(mask_features.shape[1], mask_features.shape[2]) # 다시 (H_mask, W_mask)로 변형
+            
+            # 시그모이드 적용하여 마스크 확률 맵 생성
+            mask_prob_raw = sigmoid_np(mask_logit) # (H_mask, W_mask), H_mask=184, W_mask=320 (예시)
+            
+            # 마스크 확률 맵을 모델 입력 크기 (640x640)로 리사이즈
+            # self.input_width와 self.input_height는 Detector 클래스에 정의된 640x640
+            mask_prob_input_size = cv2.resize(mask_prob_raw, (self.input_width, self.input_height), interpolation=cv2.INTER_LINEAR)
+
+            # --- 이 주석 '패딩제거 및 스케일을 적용하지 않았으므로 이쪽 코드도 사용하지 않음.'은 **잘못된 주석입니다.**
+            #     아래 코드는 **실제로 패딩을 제거하고 스케일을 역변환하는 중요한 부분**입니다.
+            #     이전 preprocess에서 원본 이미지의 실제 내용물이 리사이즈되었던 크기를 다시 계산합니다.
+            actual_scaled_h = int(original_height * scale) # 예: 720 * 0.5 = 360
+            actual_scaled_w = int(original_width * scale)  # 예: 1280 * 0.5 = 640
+
+            left_pad = 0 # preprocess에서 좌우 패딩은 없었으므로 0
+            
+            # 640x640 마스크(패딩 포함)에서 실제 이미지 내용물에 해당하는 영역만 잘라냄
+            # 이 영역은 `actual_scaled_w` x `actual_scaled_h` (예: 640x360) 크기가 됩니다.
+            cropped_mask_padded_scale = mask_prob_input_size[
+                pad_top : pad_top + actual_scaled_h, # 상단 패딩부터 실제 내용물 높이까지
+                left_pad : left_pad + actual_scaled_w  # 좌측 패딩부터 실제 내용물 너비까지
+            ]
+
+            # 최종 마스크를 원본 이미지 크기(original_width x original_height)로 리사이즈
+            # 이제 `cropped_mask_padded_scale`은 패딩이 제거되고 스케일이 적용된 마스크입니다.
+            # 이를 원본 이미지 크기로 다시 확장하여 최종 마스크를 얻습니다.
+            final_mask_for_object = cv2.resize(cropped_mask_padded_scale, 
+                                               (original_width, original_height), 
+                                               interpolation=cv2.INTER_LINEAR) 
+            
+            # 마스크를 이진화 (0 또는 255 값으로 변환)
+            final_mask_for_object_binary = (final_mask_for_object > 0.5).astype(np.uint8) * 255
+
+            final_masks.append(final_mask_for_object_binary)
+
         return boxes_final, scores_final, labels_final, final_masks
             

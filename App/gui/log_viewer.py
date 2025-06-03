@@ -126,81 +126,121 @@ class LogViewer(QWidget):
         self.table.horizontalHeader().setStretchLastSection(True)
         # self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        self.btn_design = """
-            background-color: 	#DCDCDC	;
-            color: #000000;
-            border-right: 5px solid #a0a0a0;
-            border-bottom: 5px solid #a0a0a0;
-            border-radius: 10px;
-            font-size: 28px;
-            font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
-            font-weight: bold;
-            
-        """
         
-        self.btn_hover = """
-            QPushButton {
-                background-color: 	#000000	;
-                color: #E6E6E6;
-                border: 1px solid #E6E6E6;
-                border-radius: 5px;
-                font-size: 28px;
-                font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #123332;
-                border: 3px solid #E6E6E6;
-                color: #E6E6E6;
-                border-radius:5px;
-            }
-            QPushButton:pressed {
-                background-color: #E6E6E6;
-                border: 3px solid #E6E6E6;
-                color: #000000;
-                border-radius:5px;
-            }
-        """
-        
-        ## 로그/비디오 버튼 레이아웃        
+        ## 버튼 레이아웃        
         btnWidget = QWidget()
-        main_layout = QVBoxLayout()
+        btn_layout = QVBoxLayout()
 
-        btnWidget.setLayout(main_layout)
-        main_layout.setContentsMargins(0,0,0,0)
-        # btnWidget.setFixedSize(200,330)
+        btnWidget.setLayout(btn_layout)
+        btn_layout.setContentsMargins(10,0,10,0)
+        btn_layout.setSpacing(0)
         btnWidget.setFixedWidth(100)
         
+        ## 갱신refresh 버튼
+        sound_btn = QPushButton("")
+        # sound_btn.clicked.connect(self.loadLogs)
+        sound_btn.setFixedSize(80, 80)
+        sound_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        btn_layout.addWidget(sound_btn, 1) # 1은 stretch 비율
         
         ## 갱신refresh 버튼
         refresh_btn = QPushButton("")
         refresh_btn.clicked.connect(self.loadLogs)
-        refresh_btn.setFixedWidth(100) # 너비만 고정
-        refresh_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        main_layout.addWidget(refresh_btn, 1)
-
+        refresh_btn.setFixedSize(80, 80)
+        refresh_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        btn_layout.addWidget(refresh_btn, 1) # 1은 stretch 비율
+        
         # 로그 버튼
         log_btn = QPushButton("")
         log_btn.clicked.connect(lambda: self.openFolder('resources/logs'))  # 각 버튼에 맞는 함수로 연결
-        log_btn.setFixedWidth(100) # 너비만 고정
-        log_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        main_layout.addWidget(log_btn, 1) # 1은 stretch 비율
+        log_btn.setFixedSize(80, 80)
+        log_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        btn_layout.addWidget(log_btn, 1) # 1은 stretch 비율
 
         # 삭제 버튼
         remove_btn = QPushButton("")
         remove_btn.clicked.connect(lambda: self.removeLogs('resources/logs'))
-        remove_btn.setFixedWidth(100) # 너비만 고정
-        remove_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        main_layout.addWidget(remove_btn, 1) # 1은 stretch 비율
+        remove_btn.setFixedSize(80, 80)
+        remove_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        btn_layout.addWidget(remove_btn, 1) # 1은 stretch 비율
 
-        refresh_btn.setStyleSheet(self.btn_design)
-        log_btn.setStyleSheet(self.btn_design)
-        remove_btn.setStyleSheet(self.btn_design)
+        btn_layout.addStretch(1)
         
-        refresh_btn.setStyleSheet(self.btn_hover)
-        log_btn.setStyleSheet(self.btn_hover)
-        remove_btn.setStyleSheet(self.btn_hover)
+        sound_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-image: url(resources/icons/sound.png);
+                background-repeat: no-repeat;
+                background-position: center;
+            }}
+            QPushButton:hover {{
+                background-color: #123332;
+                border: 3px solid #00D2B5;
+                background-image: url(resources/icons/sound.png);
+            }} 
+            QPushButton:pressed {{
+                background-color: #00D2B5;
+                border: 3px solid #00D2B5;
+                background-image: url(resources/icons/sound.png);
+            }}
+        """)        
+
+        refresh_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-image: url(resources/icons/refresh.png);
+                background-repeat: no-repeat;
+                background-position: center;
+            }}
+            QPushButton:hover {{
+                background-color: #123332;
+                border: 3px solid #00D2B5;
+                color: #00D2B5;
+                background-image: url(resources/icons/refresh.png);
+            }} 
+            QPushButton:pressed {{
+                background-color: #00D2B5;
+                border: 3px solid #00D2B5;
+                color: #000000;
+                background-image: url(resources/icons/refresh.png);
+            }}
+        """)        
+        log_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-image: url(resources/icons/folder.png);
+                background-repeat: no-repeat;
+                background-position: center;
+            }}
+            QPushButton:hover {{
+                background-color: #123332;
+                border: 3px solid #00D2B5;
+                color: #00D2B5;
+                background-image: url(resources/icons/folder.png);
+            }} 
+            QPushButton:pressed {{
+                background-color: #00D2B5;
+                border: 3px solid #00D2B5;
+                color: #000000;
+                background-image: url(resources/icons/folder.png);
+            }}
+        """)        
+        remove_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-image: url(resources/icons/remove.png);
+                background-repeat: no-repeat;
+                background-position: center;
+            }}
+            QPushButton:hover {{
+                background-color: #123332;
+                border: 3px solid #00D2B5;
+                color: #00D2B5;
+                background-image: url(resources/icons/remove.png);
+            }} 
+            QPushButton:pressed {{
+                background-color: #00D2B5;
+                border: 3px solid #00D2B5;
+                color: #000000;
+                background-image: url(resources/icons/remove.png);
+            }}
+        """)        
         
         layout.addWidget(btnWidget)
         self.setLayout(layout)
