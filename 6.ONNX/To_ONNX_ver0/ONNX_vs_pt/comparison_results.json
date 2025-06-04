@@ -1,5 +1,0 @@
-{
-  "PyTorch": {
-    "detection_metrics": {
-      "avg_detections_per_image": 2.0,
-      "avg_confidence": 
