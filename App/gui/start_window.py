@@ -6,11 +6,7 @@ from PyQt5.QtWidgets import (
 import os, json
 from PyQt5.QtGui import QFont, QGuiApplication, QCursor, QIcon, QMouseEvent
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QSize
-import time
-from collections import Counter
-from utils import design
 from gui.main_window import MainWindow
-
 
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
@@ -72,9 +68,13 @@ class StartWindow(QWidget):
                 background-position: center;
             }
             QPushButton:pressed {
-                background-image: url(resources/icons/mini_s.png);
+                background-image: url(resources/icons/mini_sb.png);
                 background-repeat: no-repeat;
                 background-position: center;
+                
+                background-color: #2FDFD9;
+                border: 3px solid #00D2B5;
+                border-radius: 5px;
             }
             """
         )
@@ -91,9 +91,13 @@ class StartWindow(QWidget):
                 background-position: center;
             }
             QPushButton:pressed {
-                background-image: url(resources/icons/max_s.png);
+                background-image: url(resources/icons/max_sb.png);
                 background-repeat: no-repeat;
                 background-position: center;
+                
+                background-color: #2FDFD9;
+                border: 3px solid #00D2B5;
+                border-radius: 5px;
             }
             """
         )
@@ -110,9 +114,14 @@ class StartWindow(QWidget):
                 background-position: center;
             }
             QPushButton:pressed {
-                background-image: url(resources/icons/close_s.png);
+                background-image: url(resources/icons/close_sb.png);
                 background-repeat: no-repeat;
                 background-position: center;
+                
+                background-color: #2FDFD9;
+                border: 3px solid #00D2B5;
+                border-radius: 5px;
+                
             }
             """
         )
@@ -205,16 +214,15 @@ class StartWindow(QWidget):
                 background-position: center;
             }}
             QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                color: #00D2B5;
-                background-image: url(resources/icons/on.png);
+                background-image: url(resources/icons/on_c.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }}
             QPushButton:pressed {{
-                background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                color: #000000;
-                background-image: url(resources/icons/on.png);
+                background-image: url(resources/icons/on_b.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                border: none;
             }}
         """)
 
@@ -227,16 +235,16 @@ class StartWindow(QWidget):
                 background-position: center;
             }}
             QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                color: #00D2B5;
-                background-image: url(resources/icons/config.png);
+                background-image: url(resources/icons/config_c.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                
             }} 
             QPushButton:pressed {{
-                background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                color: #000000;
-                background-image: url(resources/icons/config.png);
+                background-image: url(resources/icons/config_b.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                border: none;
             }}
         """)
 
@@ -249,16 +257,16 @@ class StartWindow(QWidget):
                 background-position: center;
             }}
             QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                color: #00D2B5;
-                background-image: url(resources/icons/logs.png);
+                background-image: url(resources/icons/logs_c.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                
             }} 
             QPushButton:pressed {{
-                background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                color: #000000;
-                background-image: url(resources/icons/logs.png);
+                background-image: url(resources/icons/logs_b.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                border: none;
             }}
         """)
         
@@ -319,13 +327,16 @@ class StartWindow(QWidget):
         self.start_main_signal.emit() # 시그널 발생
         self.close() # 현재 StartWindow 닫기    
         
-    def openFolder(self, folder_path='../resources/logs'):
+    def openFolder(self):
         """ 
         폴더 열기 메서드
         """
-        # folder_path = os.path.join(folder_path, str(self.cam_num))  # 여기에 열고 싶은 폴더 경로 입력
+        folder_path = os.path.abspath('./resources/logs/')
+        # print(folder_path)
         if os.path.exists(folder_path):
             subprocess.Popen(["explorer", folder_path])
             print(f"{folder_path}")
         else:
             print(f"경로가 존재하지 않습니다. {folder_path}")
+
+    

@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import onnxruntime as ort
 import torch
-import torchvision
+# import torchvision
 import onnx
 import os
 import torch.nn.functional as F
@@ -14,7 +14,9 @@ import torch.nn.functional as F
 
 
 class Detector:
-    def __init__(self, onnx_path="resources/models/yolov8_custom_fixed.onnx", conf_threshold=0.65, iou_threshold=0.45):
+    # def __init__(self, onnx_path="resources/models/yolov8_custom_fixed.onnx", conf_threshold=0.6, iou_threshold=0.45):
+    # def __init__(self, onnx_path="resources/models/yolov8_custom_fixed_0603.onnx", conf_threshold=0.6, iou_threshold=0.45):
+    def __init__(self, onnx_path="resources/models/yolov8_custom_fixed_v2.onnx", conf_threshold=0.6, iou_threshold=0.45):
         self.session = ort.InferenceSession(onnx_path, providers=["CPUExecutionProvider"])
         self.conf_threshold = conf_threshold
         self.iou_threshold = iou_threshold
@@ -22,8 +24,8 @@ class Detector:
         # ONNX 모델의 입력 이름 가져오기
         self.input_name = self.session.get_inputs()[0].name
         
-        self.input_height = 384
-        self.input_width = 640
+        self.input_height = 192
+        self.input_width = 320
         self.padding_color = 114 
         
         try:
@@ -107,7 +109,7 @@ class Detector:
         img_input, scale, (pad_top, pad_bottom) = self.preprocess(frame) 
         ## img_input  (1, 3, 360, 640)
         # img_input = img_input.transpose(0, 1, 3, 2)
-        print('check', img_input.shape)
+        # print('check', img_input.shape)
         
         original_h, original_w = frame.shape[:2] 
         

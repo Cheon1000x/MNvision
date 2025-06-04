@@ -2,10 +2,11 @@ KMP_DUPLICATE_LIB_OK='TRUE'
 
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QPushButton, QTabWidget, QSizePolicy, QLabel, QGraphicsDropShadowEffect
+    QPushButton, QTabWidget, QSizePolicy, QLabel, QGraphicsDropShadowEffect,
+    QApplication
 )
 import os, json
-from PyQt5.QtGui import QFont, QGuiApplication, QCursor, QIcon, QMouseEvent 
+from PyQt5.QtGui import QFontDatabase, QFont, QGuiApplication, QCursor, QIcon, QMouseEvent 
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 from gui.video_widget import VideoWidget
 from gui.roi_editor import ROIEditor
@@ -61,28 +62,27 @@ class MainWindow(QMainWindow):
         # 스타일시트 통합
         self.btn_design = """
             background-color: 	#161616	;
-            color: #000000;
             border-radius:  5px;
         """
         
-        self.btn_hover = """
-            QPushButton {
-                background-color:  #161616	;
-                color: #00D2B5;
-                border: 3px solid #00D2B5;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                border-radius:5px;
-            }
-            QPushButton:pressed {
-                background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                border-radius:5px;
-            }
-        """
+        # self.btn_hover = """
+        #     QPushButton {
+        #         background-color:  #161616	;
+        #         color: #00D2B5;
+        #         border: 3px solid #00D2B5;
+        #         border-radius: 5px;
+        #     }
+        #     QPushButton:hover {
+        #         background-color: #123332;
+        #         border: 3px solid #00D2B5;
+        #         border-radius:5px;
+        #     }
+        #     QPushButton:pressed {
+        #         background-color: #00D2B5;
+        #         border: 3px solid #00D2B5;
+        #         border-radius:5px;
+        #     }
+        # """
         
         # Start 버튼
         # logo
@@ -124,16 +124,17 @@ class MainWindow(QMainWindow):
                 background-position: center;
             }}
             QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                color: #00D2B5;
-                background-image: url(resources/icons/config_m.png);
+                background-image: url(resources/icons/config_mc.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }} 
             QPushButton:pressed {{
                 background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                color: #000000;
-                background-image: url(resources/icons/config_m.png);
+                
+                border-radius:5px;
+                background-image: url(resources/icons/config_mb.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }}
         """)
 
@@ -146,16 +147,17 @@ class MainWindow(QMainWindow):
                 background-position: center;
             }}
             QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                color: #00D2B5;
-                background-image: url(resources/icons/mini_m.png);
+                background-image: url(resources/icons/mini_mc.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }} 
             QPushButton:pressed {{
                 background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                color: #000000;
-                background-image: url(resources/icons/mini_m.png);
+                
+                border-radius:5px;
+                background-image: url(resources/icons/mini_mb.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }}
         """)
         
@@ -168,16 +170,18 @@ class MainWindow(QMainWindow):
                 background-position: center;
             }}
             QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                color: #00D2B5;
-                background-image: url(resources/icons/max_m.png);
+                background-image: url(resources/icons/max_mc.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                
             }} 
             QPushButton:pressed {{
                 background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                color: #000000;
-                background-image: url(resources/icons/max_m.png);
+                
+                border-radius:5px;
+                background-image: url(resources/icons/max_mb.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }}
         """)
         
@@ -190,16 +194,17 @@ class MainWindow(QMainWindow):
                 background-position: center;
             }}
             QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                color: #00D2B5;
-                background-image: url(resources/icons/close_m.png);
+                background-image: url(resources/icons/close_mc.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }}
             QPushButton:pressed {{
                 background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                color: #000000;
-                background-image: url(resources/icons/close_m.png);
+                
+                border-radius:5px;
+                background-image: url(resources/icons/close_mb.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }}
         """)
         
@@ -317,14 +322,18 @@ class MainWindow(QMainWindow):
 
             # 정보 영역
             info_widget = QWidget()
+            info_widget.setObjectName("info_widget")  # ✔ 스타일링 타겟 명확히
             info_widget.setStyleSheet("""
                 background-color: #161616; 
                 color: #E6E6E6; 
                 border-radius: 20px; 
-                font: 20px 'Pretendard Variable', 'Helvetica Neue', Arial, sans-serif;
+                font-size: 25px;
+                font-family: 'Koulen-Regular', 'pretendard-bold', Arial;
+                font-weight: bold;
             """)
             info_widget.setFixedSize(int((self.size.width()-180) * 0.5), 130)
             info_layout = QHBoxLayout(info_widget)
+            info_layout.setContentsMargins(0,0,0,0)
             self.info_widgets[cam_id] = info_widget
 
             
@@ -352,7 +361,6 @@ class MainWindow(QMainWindow):
                     background-repeat: no-repeat;
                     background-position: center;
                     border-radius:  5px;
-                
                 }}
             """)
             info_layout.addWidget(spotlight)
@@ -361,26 +369,63 @@ class MainWindow(QMainWindow):
             info00.addWidget(spotlight)
             
             
+            
             # 왼쪽 정보
             info01w = QWidget()
+            info01w.setObjectName("info01w")  # ✔ 스타일링 타겟 명확히
+
             info01 = QVBoxLayout(info01w)
+
+            info01w.setStyleSheet("""
+                #info01w {
+                    background-image: url(resources/icons/infoBack.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                }
+            """)
+            info01w.setFixedSize(300, 130)
             info1 = QLabel(f"mute/on")
+            info1.setStyleSheet("background-color: transparent;")
+            
             info2 = QLabel(f"event_type")
+            info2.setStyleSheet("background-color: transparent;")
+            
             for lbl in (info1, info2):
-                lbl.setStyleSheet("color: #E6E6E6;")
-                info01.addWidget(lbl)
+                info01.addWidget(lbl, alignment=Qt.AlignCenter)
             self.onoff_labels[cam_id] = info1
             self.event_labels[cam_id] = info2
 
             # 가운데 정보
             info02w = QWidget()
             info02 = QVBoxLayout(info02w)
-            info3 = QLabel("")
-            info4 = QLabel("")
+            info02w.setFixedSize(200, 130)
+            info02w.setObjectName("info02w")  # ✔ 스타일링 타겟 명확히
+            info02w.setStyleSheet(f"""
+            #info02w {{
+                    background-image: url(resources/icons/infoBack.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                }}
+            """)
+            info3_0 = QLabel("")
+            info3_1 = QLabel("")
+            info3_0.setStyleSheet("background-color: transparent;")
+            info3_1.setStyleSheet("background-color: transparent;")
+            info3 = QHBoxLayout()
+            info3.addWidget(info3_0)
+            info3.addWidget(info3_1, alignment=Qt.AlignRight)
+
+            info4_0 = QLabel("")
+            info4_1 = QLabel("")
+            info4_0.setStyleSheet("background-color: transparent;")
+            info4_1.setStyleSheet("background-color: transparent;")
+            info4 = QHBoxLayout()
+            info4.addWidget(info4_0)
+            info4.addWidget(info4_1, alignment=Qt.AlignRight)
+            
             for lbl in (info3, info4):
-                lbl.setStyleSheet("color: #E6E6E6;")
-                info02.addWidget(lbl)
-            self.info_labels[cam_id] = (info3, info4)
+                info02.addLayout(lbl)
+            self.info_labels[cam_id] = (info3_0, info3_1, info4_0, info4_1)
             
             # 버튼
             reset_btn = QPushButton("")
@@ -390,6 +435,16 @@ class MainWindow(QMainWindow):
                     background-repeat: no-repeat;
                     background-position: center;
                     border-radius:  5px;
+                }}
+                QPushButton:hover {{
+                    background-image: url(resources/icons/reset_c.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                }}
+                QPushButton:pressed {{
+                    background-image: url(resources/icons/reset_b.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
                 }}
             """)
             reset_btn.setFixedSize(100, 100)
@@ -404,6 +459,7 @@ class MainWindow(QMainWindow):
             lv = LogViewer(cam_id)
             lv.setContentsMargins(0, 0, 0, 0)
             lv.setFixedWidth(int((self.size.width()-180) * 0.5))
+            lv.mute_opt_TF.connect(alert_manager.mute_contorl)
             self.log_viewers[cam_id] = lv  # ✅ 딕셔너리에 저장 추가
             
             # ROI 에디터 설정
@@ -434,77 +490,60 @@ class MainWindow(QMainWindow):
 
      
     def lightControl(self, str, cam_num):
-        pass
-        print(f"\n[lightControl 호출 시작] cam_num: {cam_num}") 
+        # print(f"\n[lightControl 호출 시작] cam_num: {cam_num}") 
 
-        # 1. target 객체 유효성 검사
         target = self.spotlights.get(cam_num, None)
         if not target:
-            print(f"  ❌ 경고: cam_num {cam_num}에 해당하는 Spotlight 객체를 'self.spotlights'에서 찾을 수 없습니다.")
-            print(f"  현재 'self.spotlights': {self.spotlights}") # 현재 딕셔너리 내용 출력
-            # QMessageBox.warning(self, "Spotlight 오류", f"카메라 {cam_num}의 스포트라이트를 찾을 수 없습니다.")
-            return # 더 이상 진행하지 않음
-            
-        print(f"  ✅ cam_num {cam_num}에 대한 Spotlight 객체 유효: {target} (타입: {type(target)})")
+            # print(f"   cam_num {cam_num}에 Spotlight 없음.")
+            return
 
-        # 2. 빨간불로 설정
-        print(f"  cam_num {cam_num}의 스포트라이트를 빨간색으로 설정 시도.")
+        # print(f"   Spotlight 객체 유효: {target}")
 
-        target.setStyleSheet(f"""
-                QPushButton {{
-                    background-image: url(resources/icons/danger.png);
-                    background-repeat: no-repeat;
-                    background-position: center;
-                    border-radius:  5px;
-                    background-color: #171D35;
-                }}
-            """)
-
-        # 3. 기존 타이머가 있다면 멈춤
-        if cam_num in self.reset_timers:
-            old_timer = self.reset_timers[cam_num]
-            if old_timer.isActive():
-                old_timer.stop()
-                print(f"  기존 타이머 중지됨 (cam_num: {cam_num}).")
-            old_timer.deleteLater()
-            print(f"  기존 타이머 삭제됨 (cam_num: {cam_num}).")
-        else:
-            print(f"  cam_num {cam_num}에 대한 기존 타이머 없음.")
-
-        # 4. 새로운 타이머 생성
-        timer = QTimer(self)  # 부모 지정
-        timer.setSingleShot(True)
+        # 빨간불로 변경
         
+        target.setStyleSheet("""
+            QPushButton {
+                background-image: url(resources/icons/danger.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                border-radius: 5px;
+            }
+        """)
+
         def reset_to_green():
-            print(f"[타이머 만료] cam_num: {cam_num} - 초록불로 리셋 및 'no event' 설정.")
-            target.setStyleSheet(f"""
-                QPushButton {{
+            # print(f"[타이머 만료] cam_num: {cam_num} - 초록불로 리셋 및 no event 설정.")
+            target.setStyleSheet("""
+                QPushButton {
                     background-image: url(resources/icons/safe.png);
                     background-repeat: no-repeat;
                     background-position: center;
-                    border-radius:  5px;
-                    background-color: #171D35;
-                }}
+                    border-radius: 5px;
+                }
             """)
-            event_label = self.event_labels.get(cam_num, None)
+            event_label = self.event_labels.get(cam_num)
             if event_label:
                 event_label.setText("no event")
-                print(f"  cam_num {cam_num}의 이벤트 라벨 'no event'로 설정됨.")
+                print(f"  cam_num {cam_num} 이벤트 라벨 설정 완료.")
             else:
-                print(f"  경고: cam_num {cam_num}에 해당하는 event_label을 찾을 수 없습니다.")
-            
-            if cam_num in self.reset_timers and self.reset_timers[cam_num] is timer:
-                del self.reset_timers[cam_num]
-                print(f"  cam_num {cam_num}의 타이머 딕셔너리에서 제거됨.")
-        
-        timer.timeout.connect(reset_to_green)
-        timer.start(5000)  # 5초
-        print(f"  cam_num {cam_num}에 대한 새 타이머 시작 (5초 후 리셋).")
+                print(f"  경고: event_label 없음 (cam_num: {cam_num})")
 
-        # 5. 타이머 저장
-        self.reset_timers[cam_num] = timer
-        print(f"[lightControl 호출 종료] cam_num: {cam_num}")
-        
+        timer = self.reset_timers.get(cam_num)
+        if timer is None:
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.timeout.connect(reset_to_green)
+            self.reset_timers[cam_num] = timer
+            # print(f"  타이머 생성됨 (cam_num: {cam_num})")
+        else:
+            if timer.isActive():
+                timer.stop()
+                # print(f"  기존 타이머 중지됨 (cam_num: {cam_num})")
+
+        timer.start(5000)
+        # print(f"  타이머 시작 (5초 후 리셋) (cam_num: {cam_num})")
+
+        # print("[lightControl 호출 종료]")
+    
     
     def onoff_info(self, type, label, cam_num):
         text1 = f"{type}"
@@ -512,7 +551,7 @@ class MainWindow(QMainWindow):
         if info1:
             info1.setText(text1)
             
-    def event_info(self, event_time, cam_num, label, iou):
+    def event_info(self, event_time, cam_num, label):
         text2 = f"{label}"
         info2 = self.event_labels.get(cam_num, None)
         if info2:
@@ -529,13 +568,19 @@ class MainWindow(QMainWindow):
             print("감지된 클래스가 2개 미만입니다.")
             return
 
-        text1 = f"{'forklift' if class_count[0][1].startswith('fork') else 'person':10s}{class_count[0][0]}"
-        text2 = f"{'forklift' if class_count[1][1].startswith('fork') else 'person':10s}{class_count[1][0]}"
+        text10 = f"   {('forklift' if class_count[0][1].startswith('fork') else 'person'):s}"
+        text11 = f"{class_count[0][0]:>}   "
+        text20 = f"   {('forklift' if class_count[1][1].startswith('fork') else 'person'):s}"
+        text21 = f"{class_count[1][0]:>}   "
 
-        info3, info4 = self.info_labels.get(cam_num, (None, None))
-        if info3 and info4:
-            info3.setText(text1)
-            info4.setText(text2)
+        info3_0, info3_1, info4_0, info4_1 = self.info_labels.get(cam_num, (None, None))
+        info3_0.setText(text10)
+        info3_1.setText(text11)
+        info4_0.setText(text20)
+        info4_1.setText(text21)
+        # print('_'*50)
+        # print(text20, text21)
+        
 
     
     def make_delayed_loader(self, log_viewer):

@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTableWidget, 
     QTableWidgetItem, QPushButton, QFileDialog,  QPlainTextEdit, QMessageBox,
     QSizePolicy, QHeaderView)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor, QFont, QGuiApplication
 import os
 import cv2
@@ -14,6 +14,8 @@ class LogViewer(QWidget):
     LogViewer 클래스
     이벤트 발생시 저장된 로그들을 확인하는 테이블과 버튼으로 구성
     """
+    mute_opt_TF = pyqtSignal(bool)
+    
     def __init__(self, cam_num, dir="./resources/logs"):
         super().__init__()
         self.cam_num = cam_num
@@ -43,14 +45,21 @@ class LogViewer(QWidget):
             }
         """
         ## UI 생성 선언
+        self.mute_opt = True
         self.initUI()
+        self.mute_control()
+        print('self.mute_opt',self.mute_opt)
+        
+        
+        
 
     def initUI(self):
         lv_main = QWidget()
         layout = QHBoxLayout()
         lv_main.setLayout(layout)
         
-        layout.setSpacing(0)  # 위젯 사이 간격 제거
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)  # 위젯 사이 간격 제거
         
         ## logvier 테이블 생성
         self.table = QTableWidget()
@@ -68,11 +77,11 @@ class LogViewer(QWidget):
         self.table.setStyleSheet("""
             QTableWidget {
                 border: none;
-                border-radius: 6px;
+                border-radius: 16px;
                 background-color: #2b2b2b;
                 gridline-color: transparent;
-                font-size: 15px;
-                font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
+                font-size: 20px;
+                font-family: 'Koulen-Regular', 'Helvetica Neue', Arial, sans-serif;
                 color: #000000;
             }
 
@@ -81,15 +90,15 @@ class LogViewer(QWidget):
                 color: #E6E6E6;
                 padding: 4px 10px;
                 border: none;
-                font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
+                font-family: 'Koulen-Regular', 'Helvetica Neue', Arial, sans-serif;
                 font-weight: bold;
-                font-size: 15px;
+                font-size: 20px;
             }
 
             QTableWidget::item {
-                background-color: #2A385B;
-                color: #E6E6E6;
-                font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
+                background-color: #FBFBFB;
+                color: #000000;
+                font-family: 'Koulen-Regular', 'Helvetica Neue', Arial, sans-serif;
                 font-weight: bold;
                 padding: 4px 10px;
                 border-right: 0px solid #c6c9cc;
@@ -101,7 +110,7 @@ class LogViewer(QWidget):
             }
 
              QTableWidget::item:alternate {
-                background-color: #0d0d0b;
+                background-color: #DCDCDC;
             }
             
             QTableWidget::item:selected {
@@ -138,9 +147,10 @@ class LogViewer(QWidget):
         
         ## 갱신refresh 버튼
         sound_btn = QPushButton("")
-        # sound_btn.clicked.connect(self.loadLogs)
+        sound_btn.clicked.connect(self.mute_control)
         sound_btn.setFixedSize(80, 80)
         sound_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.sound_btn = sound_btn
         btn_layout.addWidget(sound_btn, 1) # 1은 stretch 비율
         
         ## 갱신refresh 버튼
@@ -152,37 +162,20 @@ class LogViewer(QWidget):
         
         # 로그 버튼
         log_btn = QPushButton("")
-        log_btn.clicked.connect(lambda: self.openFolder('resources/logs'))  # 각 버튼에 맞는 함수로 연결
+        log_btn.clicked.connect(lambda: self.openFolder())  # 각 버튼에 맞는 함수로 연결
         log_btn.setFixedSize(80, 80)
         log_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         btn_layout.addWidget(log_btn, 1) # 1은 stretch 비율
 
         # 삭제 버튼
         remove_btn = QPushButton("")
-        remove_btn.clicked.connect(lambda: self.removeLogs('resources/logs'))
+        remove_btn.clicked.connect(lambda: self.removeLogs())
         remove_btn.setFixedSize(80, 80)
         remove_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         btn_layout.addWidget(remove_btn, 1) # 1은 stretch 비율
 
         btn_layout.addStretch(1)
         
-        sound_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-image: url(resources/icons/sound.png);
-                background-repeat: no-repeat;
-                background-position: center;
-            }}
-            QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                background-image: url(resources/icons/sound.png);
-            }} 
-            QPushButton:pressed {{
-                background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                background-image: url(resources/icons/sound.png);
-            }}
-        """)        
 
         refresh_btn.setStyleSheet(f"""
             QPushButton {{
@@ -191,16 +184,14 @@ class LogViewer(QWidget):
                 background-position: center;
             }}
             QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                color: #00D2B5;
-                background-image: url(resources/icons/refresh.png);
+                background-image: url(resources/icons/refresh_c.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }} 
             QPushButton:pressed {{
-                background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                color: #000000;
-                background-image: url(resources/icons/refresh.png);
+                background-image: url(resources/icons/refresh_b.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }}
         """)        
         log_btn.setStyleSheet(f"""
@@ -210,16 +201,14 @@ class LogViewer(QWidget):
                 background-position: center;
             }}
             QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                color: #00D2B5;
-                background-image: url(resources/icons/folder.png);
+                background-image: url(resources/icons/folder_c.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }} 
             QPushButton:pressed {{
-                background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                color: #000000;
-                background-image: url(resources/icons/folder.png);
+                background-image: url(resources/icons/folder_b.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }}
         """)        
         remove_btn.setStyleSheet(f"""
@@ -229,16 +218,14 @@ class LogViewer(QWidget):
                 background-position: center;
             }}
             QPushButton:hover {{
-                background-color: #123332;
-                border: 3px solid #00D2B5;
-                color: #00D2B5;
-                background-image: url(resources/icons/remove.png);
+                background-image: url(resources/icons/remove_c.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }} 
             QPushButton:pressed {{
-                background-color: #00D2B5;
-                border: 3px solid #00D2B5;
-                color: #000000;
-                background-image: url(resources/icons/remove.png);
+                background-image: url(resources/icons/remove_b.png);
+                background-repeat: no-repeat;
+                background-position: center;
             }}
         """)        
         
@@ -256,11 +243,11 @@ class LogViewer(QWidget):
             return
 
         column_ratios = [ 0.3, 0.1, 0.5, 0.1, 0 ]      # 퍼센트 비율
-        min_widths = [150, 60, 250, 60, 0]         # 최소 너비
+        min_widths = [180, 60, 300, 60, 0]         # 최소 너비
         
         logList = [x for x in os.listdir(self.dir)]
-        # print(self.dir)
-        # print(logList)
+        # print('self.dir',self.dir)
+        # print('logList',logList)
         index = 0
         for filename in sorted(logList):
             if filename.endswith(".txt"):
@@ -278,10 +265,10 @@ class LogViewer(QWidget):
                     
                     # index += 1
                     texts = line.strip().split(',')
-                    if len(texts) < 4:
+                    if len(texts) < 3:
                         continue
                     cam = texts[1].strip()
-                    event = texts[2].strip()
+                    event = '  ' + texts[2].strip()
 
                     row = self.table.rowCount()
                     self.table.insertRow(row)
@@ -298,10 +285,9 @@ class LogViewer(QWidget):
 
                     # 텍스트 정렬 방식 (None은 정렬 생략)
                     text_aligns = [
-                        # Qt.AlignCenter,
                         Qt.AlignCenter,
                         Qt.AlignCenter,
-                        None,
+                        Qt.AlignCenter,
                         Qt.AlignCenter,
                         Qt.AlignCenter
                     ]
@@ -318,40 +304,64 @@ class LogViewer(QWidget):
 
                         # 열 너비 지정
                         desired_width = int(self.total_width * column_ratios[col])
-                        final_width = min(desired_width, min_widths[col])
+                        final_width = max(desired_width, min_widths[col])
                         self.table.setColumnWidth(col, final_width)
 
-    def openFolder(self, folder_path='../resources/logs'):
+    def mute_control(self):
+        if self.mute_opt:
+            self.mute_opt = False
+            self.sound_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-image: url(resources/icons/sound.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                }}
+                QPushButton:hover {{
+                    background-image: url(resources/icons/sound_c.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                }} 
+                QPushButton:pressed {{
+                    background-image: url(resources/icons/sound_b.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                }}
+            """)  
+        else: 
+            self.mute_opt = True
+            self.sound_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-image: url(resources/icons/mute.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                }}
+                QPushButton:hover {{
+                    background-image: url(resources/icons/mute_c.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                }} 
+                QPushButton:pressed {{
+                    background-image: url(resources/icons/mute_b.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                }}
+            """)  
+        print('lv.mute_opt',self.mute_opt)
+        self.mute_opt_TF.emit(self.mute_opt)
+        
+
+    def openFolder(self):
         """ 
         폴더 열기 메서드
         """
-        # folder_path = os.path.join(folder_path, str(self.cam_num))  # 여기에 열고 싶은 폴더 경로 입력
-        folder_path = folder_path+str(self.cam_num)  # 여기에 열고 싶은 폴더 경로 입력
-
+        folder_path = os.path.abspath('./resources/logs/')+f'\\{self.cam_num}'
+        # print(folder_path)
         if os.path.exists(folder_path):
             subprocess.Popen(["explorer", folder_path])
             print(f"{folder_path}")
         else:
             print(f"경로가 존재하지 않습니다. {folder_path}")
     
-    # def removeLogs(self, folder_path='resources/logs'):
-    #     """ 
-    #     로그 삭제 메서드 
-    #     """
-    #     rfolder_path = os.path.join(folder_path, str(self.cam_num))  # 경로.
-        
-    #     reply = remove_custom_messagebox(self)
-        
-    #     if reply == QMessageBox.Yes:
-    #         print(f'removeLogs cam{self.cam_num}')
-    #         if os.path.exists(rfolder_path):
-    #             for file in os.listdir(rfolder_path):
-    #                 os.remove(rfolder_path+'/'+file)
-    #                 self.loadLogs()
-    #         else:
-    #             print(f"경로가 존재하지 않습니다. {rfolder_path}")
-    #     else:
-    #         print(f'canceled: removeLogs cam{self.cam_num} ')
     
     
     def removeLogs(self, folder_path='resources/logs'):

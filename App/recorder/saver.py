@@ -19,7 +19,7 @@ class VideoSaver(QObject):
         os.makedirs(self.save_dir, exist_ok=True)
         # ...
 
-    def save_clip(self, frames, event_time, label="event", iou=0.0):
+    def save_clip(self, frames, event_time, label="event"):
         if not frames:
             print("[WARN] 저장할 프레임이 없습니다.")
             return None
@@ -45,39 +45,37 @@ class VideoSaver(QObject):
             print(f"[ERROR] 영상 저장 중 오류: {e}")
             return None
 
-    def save_logs(self, event_time, label="event", iou=0.0):
+    def save_logs(self, event_time, label="event"):
         timestamp_str = datetime.fromtimestamp(event_time).strftime("%Y%m%d_%H%M%S")
         filename = f"{timestamp_str}_{self.cam_num}_{label}.txt"
         save_path = os.path.join(self.save_dir, filename)
-        log_text = f"{timestamp_str},{self.cam_num},{label},{iou:.3f}"
+        log_text = f"{timestamp_str},{self.cam_num},{label}"
 
         try:
             with open(save_path, 'w', encoding='utf-8') as f:
                 f.write(log_text)
 
-             # if self.log_viewer: # ⭐ 이 부분 제거 ⭐
-            #     self.log_viewer.append_log_text(log_text) # ⭐ 직접 호출 대신 시그널 사용 ⭐
 
-            self.log_appended_signal.emit(log_text) # ⭐ 시그널 emit ⭐
+            self.log_appended_signal.emit(log_text) #  시그널 emit 
             return save_path
         except Exception as e:
             print(f"[ERROR] 로그 저장 실패: {e}")
             return None
 
-    def save_event(self, frames, event_time, label="event", iou=0.0):
+    def save_event(self, frames, event_time, label="event"):
         """
         영상 + 로그를 동기 방식으로 저장
         """
-        self.save_clip(frames, event_time, label, iou)
-        self.save_logs(event_time, label, iou)
+        self.save_clip(frames, event_time, label)
+        self.save_logs(event_time, label)
 
-    def save_event_async(self, frames, event_time, label="event", iou=0.0):
+    def save_event_async(self, frames, event_time, label="event"):
         """
         영상 + 로그 저장을 비동기로 처리 (스레드 기반)
         """
         thread = threading.Thread(
             target=self.save_event,
-            args=(frames, event_time, label, iou),
+            args=(frames, event_time, label),
             daemon=True
         )
         thread.start()

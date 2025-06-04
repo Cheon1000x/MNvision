@@ -1,31 +1,38 @@
 project/
 ├── main.py                # 애플리케이션의 진입점
+│
 ├── gui/                    # UI 관련 파일들
 │   ├── __init__.py         # 패키지 초기화 파일 (선택사항)
 │   ├── main_window.py      # 메인 윈도우 UI
-│   ├── video_widget.py     # 영상 표시 위젯
+│   ├── video_widget.py     # 영상 표시 위젯, threading 처리
 │   ├── roi_editor.py       # ROI 설정 인터페이스
 │   └── log_viewer.py       # 로그 뷰어 UI
+│
 ├── detection/              # 객체 감지 관련 파일들
 │   ├── __init__.py         # 패키지 초기화 파일 (선택사항)
 │   ├── detector.py         # YOLO 모델 로딩 및 추론
+│   ├── detector_onnx.py    # ONNX 모델 로딩, 전처리, 후처리, 추론
 │   └── postprocessor.py    # 결과 후처리 (ROI 필터링, confidence threshold 등)
+│
 ├── recorder/               # 영상 녹화 및 저장 관련 파일들
 │   ├── __init__.py         # 패키지 초기화 파일 (선택사항)
 │   ├── video_buffer.py     # 영상 버퍼링 (±5초)
 │   └── saver.py            # 영상 저장 및 로그 연동
+│
 ├── utils/                  # 유틸리티 관련 파일들
 │   ├── __init__.py         # 패키지 초기화 파일 (선택사항)
 │   ├── alert_manager.py    # 알람 재생
 │   ├── design.py           # ui 디자인 관련.
 │   ├── metrics.py          # 성능 지표 및 F1-score 기록
 │   └── config.py           # 설정 파일 로드 및 경로 관리
+│
 ├── resources/              # 리소스 관련 파일들
 │   ├── etc/                # 알람음
 │   ├── icons/              # 아이콘 파일
 │   ├── models/             # 모델 파일들 (예: YOLO 모델 파일)
 │   ├── logs/               # 로그 파일
 │   └── videos/             # 저장된 영상 파일
+│
 └── requirements.txt        # 프로젝트 의존성 파일 (선택사항)
 
 
@@ -60,3 +67,20 @@ v1.2
 ROI INFO 영역 설정
 신호등, 뮤팅신호 감지, 이벤트 타입 감지, 객체 종류 및 수량 인식
 UI 버튼들 아이콘으로 변경 예정
+
+
+v1.3
+요청사항에 따른 전체화면 및 타이틀바 제거
+최소화, 최대화 버튼, 종료버튼 구현
+전체적인 디자인 수정 및 기능 점검
+UI 시작화면 추가 로그 폴더 열기 기능 추가
+CONFIG 버튼 추가 ( 기능은 1. confidence 설정 
+                          2. 소리 설정
+                          3. 라벨 출력 여부 설정
+                          
+                          고려중 )
+
+소리 ON/OFF 버튼 구현
+
+
+
