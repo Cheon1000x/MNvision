@@ -1,0 +1,10 @@
+
+path: C:\Users\K\Desktop\Group_6\0604
+train: images/train
+val: images/val
+
+nc: 7
+names: ['forklift-vertical', 'forklift-left', 'forklift-right', 'forklift-horizontal', 'person', 'object', '']
+
+# 클래스 가중치 (희소 클래스에 더 높은 가중치)
+cls_weights: [30.00, 30.00, 1.00, 2.62, 1.00, 30.00]
