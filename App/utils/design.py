@@ -16,6 +16,7 @@ def remove_custom_messagebox(parent):
     for button in msg_box.findChildren(QPushButton):
         button.setStyleSheet("""
             QPushButton {
+                background-color: #161616;
                 color: #00D2B5;
                 width:100px;
                 height:50px;
@@ -41,6 +42,7 @@ def remove_custom_messagebox(parent):
         QMessageBox {
             width:300px;
             height:200px;
+            background-color: #161616;
             color: white;
             font-family: 'Pretendard', 'Helvetica Neue', Arial, sans-serif;
             font-weight: bold;

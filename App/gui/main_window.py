@@ -14,23 +14,41 @@ from gui.log_viewer import LogViewer
 import time
 from collections import Counter
 from utils import design
-from utils.alert_manager import alert_manager 
+
+# from utils.alert_manager import AlertManager 
 
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, config=None):
         super().__init__()
+        if config is None:
+            self.config = {
+                "confidence": 0.6,
+                "cam1_mute": False,
+                "cam2_mute": False,
+                "show_labels": True
+            }
+            print('default')
+        else:
+            self.config = json.loads(config)
+            
+        print(self.config)
+        
         ## 컨트롤할 변수들 생성 - 통합 초기화
         self.video_widgets = {}
         self.roi_editors = {}
         self.info_widgets = {}
         self.log_viewers = {}  
-        self.reset_timers = {} 
+        self.reset_timers = {}
+         
         self.spotlights = {}
         self.onoff_labels = {}
         self.event_labels = {}  
         self.info_labels = {}
+        
+        self.info_sss = None
+        self.infor_sss = None
         
         self.old_pos = None 
         # QMainWindow는 frameGeometry()를 사용하면 창 테두리까지 포함한 정확한 크기를 얻습니다.
@@ -39,7 +57,6 @@ class MainWindow(QMainWindow):
         self.setWindowFlags(Qt.FramelessWindowHint) 
         screen = QGuiApplication.primaryScreen()
         self.size = screen.availableGeometry()
-        self.setStyleSheet("background-color: #161616;")
         self.setWindowTitle("Forklift Detection")
         
         self.setMinimumSize(400, 400)
@@ -47,42 +64,32 @@ class MainWindow(QMainWindow):
         
         ## 전체 영역 분할
         central_widget = QWidget()
+        central_widget.setObjectName("central_widget")  # ✔ 스타일링 타겟 명확히
+
+        central_widget.setStyleSheet("""
+            #central_widget {
+                background-image: url(resources/icons/bg.png);
+                background-repeat: no-repeat;
+                background-position: center;
+            }
+        """)
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(0,0,0,0)
+        main_layout.setContentsMargins(0,10,0,10)
         
         ## UI 영역 설정
         self.ui_area = QWidget()
         ui_layout = QHBoxLayout(self.ui_area)
         ui_layout.setContentsMargins(50,0,0,0)
-        self.ui_area.setFixedHeight(50)
-        self.ui_area.setStyleSheet("background-color: #161616;")
-        # self.ui_area.setStyleSheet("background-color: #ffffff;")
+        self.ui_area.setFixedHeight(50) 
+        # self.ui_area.setStyleSheet("background-color: #161616;")
         main_layout.addWidget(self.ui_area, alignment=Qt.AlignCenter) 
+        
         # 스타일시트 통합
         self.btn_design = """
-            background-color: 	#161616	;
+            background-color: transparent;
             border-radius:  5px;
         """
-        
-        # self.btn_hover = """
-        #     QPushButton {
-        #         background-color:  #161616	;
-        #         color: #00D2B5;
-        #         border: 3px solid #00D2B5;
-        #         border-radius: 5px;
-        #     }
-        #     QPushButton:hover {
-        #         background-color: #123332;
-        #         border: 3px solid #00D2B5;
-        #         border-radius:5px;
-        #     }
-        #     QPushButton:pressed {
-        #         background-color: #00D2B5;
-        #         border: 3px solid #00D2B5;
-        #         border-radius:5px;
-        #     }
-        # """
         
         # Start 버튼
         # logo
@@ -90,6 +97,7 @@ class MainWindow(QMainWindow):
         logo_btn.setFlat(True)
         logo_btn.setEnabled(False) # 클릭 불가능하게
         # Config 버튼
+        
         logo_btn.setStyleSheet(f"""
             QPushButton {{
                 background-image: url(resources/icons/logo_wide.png);
@@ -161,7 +169,7 @@ class MainWindow(QMainWindow):
             }}
         """)
         
-        # minimize 버튼
+        # maximize 버튼
         maximize_btn.setStyleSheet(f"""
             QPushButton {{
                 {self.btn_design}
@@ -213,7 +221,7 @@ class MainWindow(QMainWindow):
         maximize_btn.setFixedSize(60,50)
         exit_btn.setFixedSize(60,50)
         
-        ui_layout.addWidget(config_btn)
+        # ui_layout.addWidget(config_btn)
         ui_layout.addWidget(minimize_btn)
         ui_layout.addWidget(maximize_btn)
         ui_layout.addWidget(exit_btn)
@@ -222,14 +230,40 @@ class MainWindow(QMainWindow):
         self.video_area = QWidget()
         self.video_layout = QHBoxLayout()
         self.video_layout.setContentsMargins(40,0,40,0)
-        self.video_layout.setSpacing(40)
+        self.video_layout.setSpacing(20)
         self.video_area.setLayout(self.video_layout)
         
         main_layout.addWidget(self.video_area)
         self.main_layout = main_layout
         
-        time.sleep(1)
-        self.on_start()
+        # Config가 전달된 경우에만 초기화 진행
+        if self.config:
+            # QTimer를 사용하여 UI가 완전히 그려진 후 초기화 작업 실행
+            QTimer.singleShot(100, self.start_initialization)
+    
+    def start_initialization(self):
+        """초기화 작업을 순차적으로 실행"""
+        try:
+            # 1단계: on_start 실행 (config 사용)
+            self.on_start(self.config)
+            
+            # 2단계: on_start 완료 후 추가 작업들
+            QTimer.singleShot(500, self.post_start_tasks)
+            
+        except Exception as e:
+            print(f"초기화 오류: {e}")
+    
+    def post_start_tasks(self):
+        """on_start 완료 후 실행할 추가 작업들"""
+        try:
+            # 여기에 on_start 이후에 실행할 작업들을 추가
+            self.setup_additional_features()
+            self.finalize_ui()
+            print("모든 초기화 작업 완료")
+            
+        except Exception as e:
+            print(f"후속 작업 오류: {e}")
+
         # --- 창 드래그 기능 구현 ---
     def mousePressEvent(self, event: QMouseEvent):
         # 마우스 왼쪽 버튼이 눌렸을 때만 처리
@@ -273,15 +307,48 @@ class MainWindow(QMainWindow):
         super().keyPressEvent(event)
     # --------------------------
         
+    def update_config(self, config_json):
+        """StartWindow에서 받은 설정 적용"""
+        import json
+        try:
+            self.config = json.loads(config_json)
+            print("MainWindow에서 설정 업데이트:", self.config)
+            
+            # 실제 설정 적용
+            self.apply_confidence(self.config['confidence'])
+            self.apply_sound_settings(self.config['cam1_mute'], self.config['cam2_mute'])
+            self.apply_label_settings(self.config['show_labels'])
+            
+        except json.JSONDecodeError:
+            print("JSON 파싱 오류")
+    
+    def apply_confidence(self, confidence):
+        print(f"Confidence 적용: {confidence}")
+        # 실제 confidence 로직 적용
+    
+    def apply_sound_settings(self, cam1_mute, cam2_mute):
+        print(f"소리 설정 적용: Cam1={cam1_mute}, Cam2={cam2_mute}")
+        # 실제 소리 설정 로직 적용
+    
+    def apply_label_settings(self, show_labels):
+        print(f"라벨 설정 적용: {show_labels}")
+        # 실제 라벨 표시 로직 적용
+    
+    def get_current_config_json(self):
+        """현재 설정을 JSON으로 반환"""
+        import json
+        return json.dumps(self.config, ensure_ascii=False)    
         
         
         
-        
-    def on_start(self):
+    def on_start(self, config):
+
         """ 
         시작시 cam의 vw, roi, log 생성
         """
-        
+        print('-'*50)
+        print(config)
+        print('-'*50)
         self.main_layout.removeWidget(self.ui_area)
         self.main_layout.insertWidget(0, self.ui_area)
         self.setMinimumSize(self.size.width(), self.size.height())
@@ -292,20 +359,34 @@ class MainWindow(QMainWindow):
         
         for cam_id in range(1, 3):  # CAM 1과 CAM 2
             cam_widget = QWidget()
-            cam_layout = QVBoxLayout()
-            cam_layout.setContentsMargins(20, 20, 0, 20)
-            cam_layout.setSpacing(20)
+            cam_widget.setObjectName("cam_widget")  # ✔ 스타일링 타겟 명확히
             
-            cam_widget.setStyleSheet(""" 
-                background-color: #171D35;
+            cam_widget.setStyleSheet(f"""
+                QWidget#cam_widget {{
+                background-image: url(resources/icons/bg_cam_test.png);
+                background-repeat: no-repeat;
+                background-position: center;
                 border-radius:  10px;
-            """)
+                }}
+                           """)
+            cam_layout = QVBoxLayout(cam_widget)
+            cam_layout.setContentsMargins(20, 20, 20, 20)
+            cam_layout.setSpacing(20)
             cam_widget.setLayout(cam_layout)
 
             # 비디오 위젯
-            vw = VideoWidget(cam_num=cam_id, video_path=f"resources/videos/sample{cam_id}.avi")
-            vw.setFixedSize(int((self.size.width()-180) * 0.5), int((self.size.width()-180) * 9/32))
-            # vw.setStyleSheet("border: 2px solid #000000;")
+            vw = VideoWidget(cam_num=cam_id, video_path=f"resources/videos/sample{cam_id}.avi" , conf_threshold = config['confidence'])
+            if config['show_labels'] is False:
+                vw.vthread.label_visible = False
+            else:
+                vw.vthread.label_visible = True
+            
+            vw_size = [int((self.size.width()-200) * 0.5), int((self.size.width()-200) * 9/32)]
+            vw.setFixedSize(vw_size[0], vw_size[1])
+            vw.setStyleSheet(""" 
+                            border: 2px solid #000000;
+                            border-radius: 10px;
+                             """)
             self.video_widgets[cam_id] = vw
 
             self.create_roi_editor(cam_id, vw)
@@ -321,24 +402,57 @@ class MainWindow(QMainWindow):
                 print(f'main_vw{cam_id}', polygon)
 
             # 정보 영역
+            # 인포에어리아 00, 03은 크기 고정 및 비율고정
+            ## 01, 02 는 최소 설정하되 비디오크기에 따라 변하도록.
+            ## vw.setFixedSize(int((self.size.width()-180) * 0.5) 이므로 
+            ## 신호등사이즈 120, 버튼 사이즈 100과 spacing 10씩 고려 총 240을 추가로 빼고 /2로 나누어 설정
+            # background-image: url(resources/icons/bg_info.png);
+            #     background-repeat: no-repeat;
+            #     background-position: center;
+            #     background-color: #ffffff;
+                
+            #     border: 10px solid white;
+            #     border-radius: 20px; 
+                
+            
+            
+            info_sss =(f"""
+                QWidget#info_widget {{
+                background-image: url(resources/icons/bg_info.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                
+                }}
+            """)
+            infor_sss =(f"""
+                QWidget#info_widget {{
+                background-image: url(resources/icons/bg_info_r.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                
+                }}
+            """)
+            self.info_sss = info_sss
+            self.infor_sss = infor_sss
+            
             info_widget = QWidget()
             info_widget.setObjectName("info_widget")  # ✔ 스타일링 타겟 명확히
-            info_widget.setStyleSheet("""
-                background-color: #161616; 
-                color: #E6E6E6; 
-                border-radius: 20px; 
-                font-size: 25px;
-                font-family: 'Koulen-Regular', 'pretendard-bold', Arial;
-                font-weight: bold;
-            """)
-            info_widget.setFixedSize(int((self.size.width()-180) * 0.5), 130)
-            info_layout = QHBoxLayout(info_widget)
-            info_layout.setContentsMargins(0,0,0,0)
+            info_widget.setStyleSheet(info_sss)
+            info_width = vw_size[0]
+            info_widget.setFixedSize(info_width, 130)
+            
+            info_layout = QHBoxLayout()
+            info_widget.setLayout(info_layout)
+            
+            info_layout.setContentsMargins(20,0,20,0)
+            info_layout.setSpacing(50)
             self.info_widgets[cam_id] = info_widget
 
-            
             info00w = QWidget()
             info00 = QVBoxLayout(info00w)
+            info00w.setStyleSheet(""" 
+                                  border:none;
+                                  """)
             # 신호등
             cam_name_btn = QPushButton()
             cam_name_btn.setEnabled(False)
@@ -363,32 +477,40 @@ class MainWindow(QMainWindow):
                     border-radius:  5px;
                 }}
             """)
-            info_layout.addWidget(spotlight)
             self.spotlights[cam_id] = spotlight
             spotlight.setFixedSize(120,45)
             info00.addWidget(spotlight)
             
-            
-            
+            ##                  cam_w -spot.w-reset.b-margin-spacing*3 /2
+            # info12_width = int(info_width-120-100-60-60)*0.5
+            info12_width = 200
             # 왼쪽 정보
             info01w = QWidget()
-            info01w.setObjectName("info01w")  # ✔ 스타일링 타겟 명확히
-
             info01 = QVBoxLayout(info01w)
-
-            info01w.setStyleSheet("""
-                #info01w {
-                    background-image: url(resources/icons/infoBack.png);
-                    background-repeat: no-repeat;
-                    background-position: center;
-                }
-            """)
-            info01w.setFixedSize(300, 130)
-            info1 = QLabel(f"mute/on")
-            info1.setStyleSheet("background-color: transparent;")
+            info01.setContentsMargins(0,10,0,10)
+            info01w.setFixedSize(200, 130)
+            info01w.setObjectName("info01w")  # ✔ 스타일링 타겟 명확히
+            info01w.setStyleSheet(f"""
+                QWidget#info01w {{
+                background-image: url(resources/icons/bg_info_test.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                border-radius:  10px;
+                }}
+                """)
+            
+            info_label_sss = (""" 
+                color: #E6E6E6; 
+                font-size: 25px;
+                font-family: 'Koulen-Regular', 'pretendard-bold', Arial;
+                font-weight: bold;     
+             """)
+            
+            info1 = QLabel(f"{'mute/on'}")
+            info1.setStyleSheet(info_label_sss)
             
             info2 = QLabel(f"event_type")
-            info2.setStyleSheet("background-color: transparent;")
+            info2.setStyleSheet(info_label_sss)
             
             for lbl in (info1, info2):
                 info01.addWidget(lbl, alignment=Qt.AlignCenter)
@@ -398,34 +520,27 @@ class MainWindow(QMainWindow):
             # 가운데 정보
             info02w = QWidget()
             info02 = QVBoxLayout(info02w)
+            info02.setContentsMargins(0,10,0,10)
             info02w.setFixedSize(200, 130)
             info02w.setObjectName("info02w")  # ✔ 스타일링 타겟 명확히
             info02w.setStyleSheet(f"""
-            #info02w {{
-                    background-image: url(resources/icons/infoBack.png);
-                    background-repeat: no-repeat;
-                    background-position: center;
+                QWidget#info02w {{
+                background-image: url(resources/icons/bg_info_test.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                border-radius:  10px;
                 }}
-            """)
-            info3_0 = QLabel("")
-            info3_1 = QLabel("")
-            info3_0.setStyleSheet("background-color: transparent;")
-            info3_1.setStyleSheet("background-color: transparent;")
-            info3 = QHBoxLayout()
-            info3.addWidget(info3_0)
-            info3.addWidget(info3_1, alignment=Qt.AlignRight)
-
-            info4_0 = QLabel("")
-            info4_1 = QLabel("")
-            info4_0.setStyleSheet("background-color: transparent;")
-            info4_1.setStyleSheet("background-color: transparent;")
-            info4 = QHBoxLayout()
-            info4.addWidget(info4_0)
-            info4.addWidget(info4_1, alignment=Qt.AlignRight)
+                """)
+            
+            
+            info3 = QLabel("")
+            info3.setStyleSheet(info_label_sss)
+            info4 = QLabel("")
+            info4.setStyleSheet(info_label_sss)
             
             for lbl in (info3, info4):
-                info02.addLayout(lbl)
-            self.info_labels[cam_id] = (info3_0, info3_1, info4_0, info4_1)
+                info02.addWidget(lbl)
+            self.info_labels[cam_id] = (info3, info4)
             
             # 버튼
             reset_btn = QPushButton("")
@@ -450,17 +565,24 @@ class MainWindow(QMainWindow):
             reset_btn.setFixedSize(100, 100)
             reset_btn.clicked.connect(lambda _, cid=cam_id: self.reset_roi(cid))
 
-            info_layout.addWidget(info00w, alignment=Qt.AlignCenter)
-            info_layout.addWidget(info01w,alignment=Qt.AlignCenter)
+            info_layout.addWidget(info00w, alignment=Qt.AlignLeft)
+            info_layout.addWidget(info01w, alignment=Qt.AlignLeft)
             info_layout.addWidget(info02w, alignment=Qt.AlignCenter)
-            info_layout.addWidget(reset_btn, alignment=Qt.AlignCenter)
+            info_layout.addWidget(reset_btn, alignment=Qt.AlignRight)
 
             # LogViewer
             lv = LogViewer(cam_id)
             lv.setContentsMargins(0, 0, 0, 0)
-            lv.setFixedWidth(int((self.size.width()-180) * 0.5))
-            lv.mute_opt_TF.connect(alert_manager.mute_contorl)
+            lv.setFixedWidth(vw_size[0])
+            lv.mute_opt_TF.connect(vw.vthread.alert_manager.mute_contorl)
+            
+            if config[f'cam{cam_id}_mute'] != lv.mute_opt_TF:
+                lv.mute_opt_TF.emit(config[f'cam{cam_id}_mute'], cam_id)
+            else:
+                pass
+            
             self.log_viewers[cam_id] = lv  # ✅ 딕셔너리에 저장 추가
+            
             
             # ROI 에디터 설정
             roi_editor = self.roi_editors.get(cam_id)
@@ -475,7 +597,7 @@ class MainWindow(QMainWindow):
             vw.vthread.on_triggered.connect(self.onoff_info)
             vw.vthread.mute_triggered.connect(self.onoff_info)
             vw.vthread.event_triggered.connect(self.event_info)
-            alert_manager.on_alert_signal.connect(self.lightControl, type=Qt.QueuedConnection)
+            vw.vthread.alert_manager.on_alert_signal.connect(self.lightControl, type=Qt.QueuedConnection)
             # vw.vthread.event_triggered.connect(lambda: self.make_delayed_loader(lv)())
             vw.vthread.info_triggered.connect(self.handle_result)
            
@@ -483,9 +605,9 @@ class MainWindow(QMainWindow):
                 vw.video_saver.log_appended_signal.connect(lv.append_log_text, type=Qt.QueuedConnection)
 
             # 레이아웃 추가
-            cam_layout.addWidget(vw)
-            cam_layout.addWidget(info_widget)
-            cam_layout.addWidget(lv)
+            cam_layout.addWidget(vw, alignment=Qt.AlignCenter)
+            cam_layout.addWidget(info_widget, alignment=Qt.AlignCenter)
+            cam_layout.addWidget(lv, alignment=Qt.AlignCenter)
             self.video_layout.addWidget(cam_widget)
 
      
@@ -499,8 +621,6 @@ class MainWindow(QMainWindow):
 
         # print(f"   Spotlight 객체 유효: {target}")
 
-        # 빨간불로 변경
-        
         target.setStyleSheet("""
             QPushButton {
                 background-image: url(resources/icons/danger.png);
@@ -509,6 +629,9 @@ class MainWindow(QMainWindow):
                 border-radius: 5px;
             }
         """)
+        ## 빨강으로 바꿔야함
+        self.info_widgets[cam_num].setObjectName("info_widget")  # ✔ 스타일링 타겟 명확히
+        self.info_widgets[cam_num].setStyleSheet(self.infor_sss)
 
         def reset_to_green():
             # print(f"[타이머 만료] cam_num: {cam_num} - 초록불로 리셋 및 no event 설정.")
@@ -520,6 +643,8 @@ class MainWindow(QMainWindow):
                     border-radius: 5px;
                 }
             """)
+            self.info_widgets[cam_num].setObjectName("info_widget")  # ✔ 스타일링 타겟 명확히
+            self.info_widgets[cam_num].setStyleSheet(self.info_sss)
             event_label = self.event_labels.get(cam_num)
             if event_label:
                 event_label.setText("no event")
@@ -546,10 +671,10 @@ class MainWindow(QMainWindow):
     
     
     def onoff_info(self, type, label, cam_num):
-        text1 = f"{type}"
+        text1 = f"{type.upper()}"
         info1 = self.onoff_labels.get(cam_num, None)
         if info1:
-            info1.setText(text1)
+            info1.setText(f"{text1}")
             
     def event_info(self, event_time, cam_num, label):
         text2 = f"{label}"
@@ -558,6 +683,7 @@ class MainWindow(QMainWindow):
             info2.setText(text2)
             
     def handle_result(self, data, cam_num):
+        
         class_names = [det['class_name'] for det in data]
         counts = Counter(class_names)
         class_count = sorted([[count, class_name] for class_name, count in counts.items()], reverse=True)
@@ -568,16 +694,14 @@ class MainWindow(QMainWindow):
             print("감지된 클래스가 2개 미만입니다.")
             return
 
-        text10 = f"   {('forklift' if class_count[0][1].startswith('fork') else 'person'):s}"
-        text11 = f"{class_count[0][0]:>}   "
-        text20 = f"   {('forklift' if class_count[1][1].startswith('fork') else 'person'):s}"
-        text21 = f"{class_count[1][0]:>}   "
+        text10 = f"   {('FORKLIFT' if class_count[0][1].startswith('fork') else 'PERSON'):6s}"
+        text11 = f"{class_count[0][0]}   "
+        text20 = f"   {('FORKLIFT' if class_count[1][1].startswith('fork') else 'PERSON'):6s}"
+        text21 = f"{class_count[1][0]}   "
 
-        info3_0, info3_1, info4_0, info4_1 = self.info_labels.get(cam_num, (None, None))
-        info3_0.setText(text10)
-        info3_1.setText(text11)
-        info4_0.setText(text20)
-        info4_1.setText(text21)
+        info3, info4 = self.info_labels.get(cam_num, (None, None))
+        info3.setText(f"{text10}  {text11:>8}")
+        info4.setText(f"{text20}  {text21:>6}")
         # print('_'*50)
         # print(text20, text21)
         
@@ -693,8 +817,8 @@ class MainWindow(QMainWindow):
         width = screen_size.width()
 
         if self.video_widgets:
-            new_width = int((width - 180) * 0.5)
-            new_height = int((width - 180) * 9 / 32)
+            new_width = int((width - 200) * 0.5)
+            new_height = int((width - 200) * 9 / 32)
 
             for cam_id, vw in self.video_widgets.items():
                 vw.setFixedSize(new_width, new_height)
@@ -708,6 +832,14 @@ class MainWindow(QMainWindow):
                 if log_viewer:
                     log_viewer.setFixedWidth(new_width)
                     
+    def loadConfig(self):
+        with open('config.json', encoding='utf-8') as config:
+            if config['label'][0] == 1:
+                self.video_w1idgets[1].vthread.label_visible == config['label'][1]
+                
+                
+                
+                
     def closeEvent(self, event):
         """종료 시 안전한 정리 - 수정된 부분"""
         try:

@@ -4,17 +4,20 @@ import time
 import threading
 import os
 
+
+
 class AlertManager(QObject):
     on_alert_signal = pyqtSignal(str, int)  # 클래스 변수로 시그널 정의
     
-    def __init__(self):
+    def __init__(self, cam_num):
         super().__init__()
+        self.cam_num = cam_num
         self.last_alert_time = 0
         self.cooldown_seconds = 5
         self.is_playing = False
-        self.mute_opt = True
+        self.mute_opt = False
         self.on_alert_signal.connect(self.handle_alert_signal)
-        
+        # .mute_opt_TF.connect(self.mute_control)
         
 
     @pyqtSlot(str)
@@ -26,7 +29,7 @@ class AlertManager(QObject):
                 self.play_alert_sound(message)
                 
     def mute_contorl(self):
-        print('am.mute_opt',self.mute_opt)
+        print('am.mute_opt',self.mute_opt, self.cam_num)
         if self.mute_opt:
             self.mute_opt = False
         else: 
@@ -61,6 +64,6 @@ class AlertManager(QObject):
                     self.play_alert_sound(sound_path)
 
 # 사용 예
-alert_manager = AlertManager()
+# alert_manager = AlertManager()
 # sound_path = os.path.abspath('./resources/etc/forklift_away.wav')
 # alert_manager.trigger_alert("person-forklift overlap", sound_path)

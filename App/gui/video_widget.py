@@ -7,11 +7,13 @@ from recorder.saver import VideoSaver
 
 # from detection.detector import Detector
 from detection.detector_onnx import Detector
+# from detection.detector_tensorRT import Detector
 
 from detection.postprocessor import PostProcessor
 # from gui.log_viewer import LogViewer
 # from shapely.geometry import Polygon, box
-from utils.alert_manager import alert_manager
+from utils.alert_manager import AlertManager
+
 
 
 
@@ -35,6 +37,7 @@ class VideoThread(QThread):
         self.postprocessor = postprocessor
         self.video_buffer = video_buffer
         self.cam_num = cam_num
+        self.alert_manager = AlertManager(cam_num=cam_num)
         self.roi = None
         self.running = True
         self.frame_count = 0
@@ -42,7 +45,8 @@ class VideoThread(QThread):
         # 녹화 쿨타임 관리
         self.cooldown_seconds = 5  # 쿨타임 10초s
         self.last_event_time = 0
-    
+
+        self.label_visible = True
      
     def set_ui_size(self, w, h):
         """ 
@@ -81,7 +85,7 @@ class VideoThread(QThread):
         # print('vt', self.roi)
 
     def stop(self):
-        self.running = False
+        self.running = False 
         self.cap.release()
 
     # 1. 사람과 roi
@@ -246,10 +250,15 @@ class VideoThread(QThread):
         inner_x1, inner_y1, inner_x2, inner_y2 = inner_box
         outer_x1, outer_y1, outer_x2, outer_y2 = outer_box
 
-        return (inner_x1 >= outer_x1 and
-                inner_y1 >= outer_y1 and
-                inner_x2 <= outer_x2 and
-                inner_y2 <= outer_y2)
+        # return (inner_x1 >= outer_x1 and
+        #         inner_y1 >= outer_y1 and
+        #         inner_x2 <= outer_x2 and
+        #         inner_y2 <= outer_y2)
+        return (inner_x1 < outer_x2 and
+            inner_x2 > outer_x1 and
+            inner_y1 < outer_y2 and
+            inner_y2 > outer_y1)
+
     
     ## 2-2 사람과 포크리프트 박스겹침
     def check_person_in_forklift_box(self, detections):
@@ -330,9 +339,8 @@ class VideoThread(QThread):
             crt = time.time()
             
             results = self.postprocessor.filter_results(self.detector.detect_objects(frame))
-            print(f"{time.time()-crt:.2f} sec")
+            print(f"{time.time()-crt:.3f} ms")
         
-            
             self.info_triggered.emit(results, self.cam_num)    
                 
             for det in results:
@@ -354,12 +362,14 @@ class VideoThread(QThread):
                 #     cv2.putText(frame, label, (int(x1), int(y1) - 10),
                 #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
                 # 클래스 이름에 따라 색상 정의
+            
                 if class_name == 'person':
                     color = (0, 255, 0) # 초록색 (사람)
                 elif class_name.startswith('forklift'):
                     color = (205, 205, 0) # 청록색 (지게차)
                 else:
                     color = (0, 165, 255) # 주황색 (그 외 객체, 필요시 변경)
+            
 
                 # 바운딩 박스 그리기
                 cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
@@ -377,20 +387,21 @@ class VideoThread(QThread):
                 #               (int(x1) + text_size[0], int(y1)), color, -1) # 배경 채우기
                 
                 # 라벨 텍스트 넣기
-                cv2.putText(frame, label, (int(x1), int(y1) - 10), # 박스 위쪽
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1) # 텍스트 색상을 박스 색상과 동일하게
+                if self.label_visible:
+                    cv2.putText(frame, label, (int(x1), int(y1) - 10), # 박스 위쪽
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1) # 텍스트 색상을 박스 색상과 동일하게
 
             ## 사람 - ROI 영역 체크
             # if  self.check_proximity_person_roi(results) or self.is_within_roi(results):
             if  self.is_within_roi(results):
-                alert_manager.on_alert_signal.emit("inroi", self.cam_num) 
+                self.alert_manager.on_alert_signal.emit("inroi", self.cam_num) 
                 
                 if self.can_trigger_event(): 
                     self.event_triggered.emit(time.time(), self.cam_num, "roi overlap")
             
             ## 사람 - 지게차 IOU 체크
             if  self.check_proximity_person_forklift(results) or self.check_person_in_forklift_box(results):
-                alert_manager.on_alert_signal.emit("overlap", self.cam_num) 
+                self.alert_manager.on_alert_signal.emit("overlap", self.cam_num) 
                 
                 if self.can_trigger_event():
                     self.event_triggered.emit(time.time(), self.cam_num, "forklift overlap")
@@ -406,22 +417,23 @@ class VideoThread(QThread):
         pass
         
 
-
 class VideoWidget(QLabel):
     """ 
     영상 재생 클래스.
     """
     roi_update = pyqtSignal(np.ndarray)
-    def __init__(self, cam_num, video_path="resources/videos/sample.avi"):
+    def __init__(self, cam_num, video_path="resources/videos/sample.avi", conf_threshold = 0.65):
         super().__init__()
         if not os.path.exists(video_path):
             raise FileNotFoundError(f"영상 파일을 찾을 수 없습니다: {video_path}")
-
-        self.detector = Detector()
-        self.postprocessor = PostProcessor(conf_threshold=0.6)
+        print('conf_threshold', conf_threshold)
+        self.conf_threshold = conf_threshold
+        self.detector = Detector(conf_threshold= conf_threshold)
+        self.postprocessor = PostProcessor(conf_threshold= conf_threshold)
         self.video_buffer = VideoBuffer(fps=30, max_seconds=5)
         self.video_saver = VideoSaver(cam_num=cam_num)
         # self.log_viewer = LogViewer(cam_num=cam_num)
+        
         self.cam_num = cam_num
         self.roi = None
 
@@ -432,7 +444,7 @@ class VideoWidget(QLabel):
         self.vthread.start()
 
         self.setScaledContents(True)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        # self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
     def set_roi_editor(self, roi_editor):
         """기존 ROIEditor 인스턴스를 등록함"""

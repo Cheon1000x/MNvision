@@ -8,16 +8,19 @@ import os
 import cv2
 import subprocess
 from utils.design import remove_custom_messagebox
+# from utils.alert_manager import alert_manager
+
 
 class LogViewer(QWidget):
     """ 
     LogViewer 클래스
     이벤트 발생시 저장된 로그들을 확인하는 테이블과 버튼으로 구성
     """
-    mute_opt_TF = pyqtSignal(bool)
+    mute_opt_TF = pyqtSignal(bool, int)
     
     def __init__(self, cam_num, dir="./resources/logs"):
         super().__init__()
+        ## 캠 번호 구분을 위한 캠 객체 선언
         self.cam_num = cam_num
         self.dir = dir+f'/{cam_num}/'
         screen = QGuiApplication.primaryScreen()
@@ -76,33 +79,33 @@ class LogViewer(QWidget):
         layout.addWidget(self.table)
         self.table.setStyleSheet("""
             QTableWidget {
-                border: none;
+                border:none;
                 border-radius: 16px;
-                background-color: #2b2b2b;
+                background-color: #161616;
                 gridline-color: transparent;
                 font-size: 20px;
                 font-family: 'Koulen-Regular', 'Helvetica Neue', Arial, sans-serif;
-                color: #000000;
+                color: #E6E6E6;
             }
 
             QHeaderView::section {
-                background-color: #1D2848;
+                background-color: #040402;
                 color: #E6E6E6;
                 padding: 4px 10px;
                 border: none;
                 font-family: 'Koulen-Regular', 'Helvetica Neue', Arial, sans-serif;
                 font-weight: bold;
-                font-size: 20px;
+                font-size: 23px;
             }
 
             QTableWidget::item {
-                background-color: #FBFBFB;
-                color: #000000;
+                background-color: #161616;
+                color: #E6E6E6;
                 font-family: 'Koulen-Regular', 'Helvetica Neue', Arial, sans-serif;
                 font-weight: bold;
                 padding: 4px 10px;
-                border-right: 0px solid #c6c9cc;
-                border-bottom: 1px solid #c6c9cc;
+                border-left: 1px dotted #e6e6e6;
+                border-right: 1px dotted #e6e6e6;
             }
 
             QTableWidget::item:first-child {
@@ -110,7 +113,7 @@ class LogViewer(QWidget):
             }
 
              QTableWidget::item:alternate {
-                background-color: #DCDCDC;
+                background-color: #040402;
             }
             
             QTableWidget::item:selected {
@@ -182,16 +185,19 @@ class LogViewer(QWidget):
                 background-image: url(resources/icons/refresh.png);
                 background-repeat: no-repeat;
                 background-position: center;
+                background-color: transparent;
             }}
             QPushButton:hover {{
                 background-image: url(resources/icons/refresh_c.png);
                 background-repeat: no-repeat;
                 background-position: center;
+                background-color: transparent;
             }} 
             QPushButton:pressed {{
                 background-image: url(resources/icons/refresh_b.png);
                 background-repeat: no-repeat;
                 background-position: center;
+                background-color: transparent;
             }}
         """)        
         log_btn.setStyleSheet(f"""
@@ -199,16 +205,19 @@ class LogViewer(QWidget):
                 background-image: url(resources/icons/folder.png);
                 background-repeat: no-repeat;
                 background-position: center;
+                background-color: transparent;
             }}
             QPushButton:hover {{
                 background-image: url(resources/icons/folder_c.png);
                 background-repeat: no-repeat;
                 background-position: center;
+                background-color: transparent;
             }} 
             QPushButton:pressed {{
                 background-image: url(resources/icons/folder_b.png);
                 background-repeat: no-repeat;
                 background-position: center;
+                background-color: transparent;
             }}
         """)        
         remove_btn.setStyleSheet(f"""
@@ -216,16 +225,19 @@ class LogViewer(QWidget):
                 background-image: url(resources/icons/remove.png);
                 background-repeat: no-repeat;
                 background-position: center;
+                background-color: transparent;
             }}
             QPushButton:hover {{
                 background-image: url(resources/icons/remove_c.png);
                 background-repeat: no-repeat;
                 background-position: center;
+                background-color: transparent;
             }} 
             QPushButton:pressed {{
                 background-image: url(resources/icons/remove_b.png);
                 background-repeat: no-repeat;
                 background-position: center;
+                background-color: transparent;
             }}
         """)        
         
@@ -315,16 +327,19 @@ class LogViewer(QWidget):
                     background-image: url(resources/icons/sound.png);
                     background-repeat: no-repeat;
                     background-position: center;
+                    background-color: transparent;
                 }}
                 QPushButton:hover {{
                     background-image: url(resources/icons/sound_c.png);
                     background-repeat: no-repeat;
                     background-position: center;
+                    background-color: transparent;
                 }} 
                 QPushButton:pressed {{
                     background-image: url(resources/icons/sound_b.png);
                     background-repeat: no-repeat;
                     background-position: center;
+                    background-color: transparent;
                 }}
             """)  
         else: 
@@ -334,20 +349,23 @@ class LogViewer(QWidget):
                     background-image: url(resources/icons/mute.png);
                     background-repeat: no-repeat;
                     background-position: center;
+                    background-color: transparent;
                 }}
                 QPushButton:hover {{
                     background-image: url(resources/icons/mute_c.png);
                     background-repeat: no-repeat;
                     background-position: center;
+                    background-color: transparent;
                 }} 
                 QPushButton:pressed {{
                     background-image: url(resources/icons/mute_b.png);
                     background-repeat: no-repeat;
                     background-position: center;
+                    background-color: transparent;
                 }}
             """)  
-        print('lv.mute_opt',self.mute_opt)
-        self.mute_opt_TF.emit(self.mute_opt)
+        print('lv.mute_opt',self.mute_opt, self.cam_num)
+        self.mute_opt_TF.emit(self.mute_opt, self.cam_num)
         
 
     def openFolder(self):
@@ -416,28 +434,12 @@ class LogViewer(QWidget):
                         print(f"다음 파일들은 삭제에 실패했습니다 (다른 프로그램이 사용 중일 수 있습니다):")
                         for f in failed_to_delete:
                             print(f"- {f}")
-                        # QMessageBox.warning(self, "삭제 완료 (일부 실패)", 
-                        #                     "일부 로그 파일을 삭제할 수 없었습니다. "
-                        #                     "다른 프로그램이 사용 중일 수 있으니 확인해 주세요:\n" + "\n".join(failed_to_delete))
                     else:
-                        # QMessageBox.information(self, "삭제 완료", "모든 로그 파일을 성공적으로 삭제했습니다.")
                         pass
-                    
-                    # 모든 파일 삭제 시도 후, 폴더가 비어있으면 삭제 (선택 사항)
-                    # 이 부분은 옵션이며, 비어있는 폴더만 삭제합니다.
-                    # try:
-                    #     if not os.listdir(rfolder_path): # 폴더가 비어있는지 다시 확인
-                    #         os.rmdir(rfolder_path) # 비어있는 폴더 삭제
-                    #         print(f"빈 폴더 삭제 성공: {rfolder_path}")
-                    # except OSError as e: # 폴더가 비어있지 않거나 다른 문제로 삭제 실패 시
-                    #     print(f"폴더 삭제 실패 또는 폴더가 비어있지 않음: {rfolder_path} - {e}")
                     
                     # UI에 로그 목록을 새로고침 (클래스 내부 함수 또는 콜백)
                     self.loadLogs() 
 
-                # else:
-                #     print(f"경로가 존재하지 않습니다. {rfolder_path}")
-                #     QMessageBox.information(self, "정보", f"삭제할 경로가 존재하지 않습니다: {rfolder_path}")
             else:
                 print(f'삭제 작업 취소: removeLogs cam{self.cam_num}')
 
@@ -480,7 +482,7 @@ class LogViewer(QWidget):
         self.log_text_edit.appendPlainText(text)
         
         # 스크롤을 항상 최하단으로 내리는 옵션 (선택 사항, 사용자 편의성 증대)
-        # self.log_text_edit.verticalScrollBar().setValue(self.log_text_edit.verticalScrollBar().maximum())
+        self.log_text_edit.verticalScrollBar().setValue(self.log_text_edit.verticalScrollBar().maximum())
         
         print(f"LogViewer: '{text}' 추가됨.")
 

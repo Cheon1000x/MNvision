@@ -7,11 +7,12 @@ from PyQt5.QtWidgets import QApplication
 from gui.main_window import MainWindow
 from gui.start_window import StartWindow
 
-def main():
+def main(str):
     print("메인 애플리케이션을 시작합니다!")
     # 여기에 실제 메인 애플리케이션의 인스턴스를 생성하고 표시합니다.
     global main_window
-    main_window = MainWindow()
+    print(str)
+    main_window = MainWindow(str)
     main_window.show()
 
 
@@ -36,7 +37,18 @@ if __name__ == '__main__':
     start_window.show()
 
     # main() 호출
-    start_window.start_main_signal.connect(main)
+    start_window.start_main_signal.connect(lambda str:  main(str))
 
     # QApplication의 이벤트 루프를 시작
     sys.exit(app.exec_())
+    
+    
+
+# 메인 애플리케이션에서 ConfigWindow를 사용하는 예시
+# if __name__ == '__main__':
+#     import sys
+#     from PyQt5.QtWidgets import QApplication
+#     app = QApplication(sys.argv)
+#     config_window = ConfigWindow()
+#     config_window.show()
+#     sys.exit(app.exec_())

@@ -7,21 +7,26 @@ import os, json
 from PyQt5.QtGui import QFont, QGuiApplication, QCursor, QIcon, QMouseEvent
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer, QSize
 from gui.main_window import MainWindow
+from gui.config_window import ConfigWindow
 
 # os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 class StartWindow(QWidget):
-    start_main_signal = pyqtSignal()
+    start_main_signal = pyqtSignal(str)
     def __init__(self):
         super().__init__()
         ## 컨트롤할 변수들 생성 - 통합 초기화
+        self.current_config = None
+        
         self.old_pos = None 
         self.normal_geometry = self.geometry() 
         
         self.setWindowFlags(Qt.FramelessWindowHint) 
         screen = QGuiApplication.primaryScreen()
         self.size = screen.availableGeometry()
-        self.setStyleSheet("background-color: #161616;")
+        self.setStyleSheet(""" background-image: url(resources/icons/bg_start.png);
+                background-repeat: no-repeat;
+                background-position: center; """)
         # self.setWindowTitle("Forklift Detection")
         
         self.setMinimumSize(600, 400)
@@ -204,6 +209,7 @@ class StartWindow(QWidget):
         logs_btn.setFlat(True)
         
         start_btn.clicked.connect(self.on_start)
+        config_btn.clicked.connect(self.openConfig)
         logs_btn.clicked.connect(self.openFolder)
         
         
@@ -324,9 +330,14 @@ class StartWindow(QWidget):
     # --------------------------
     
     def on_start(self):
-        self.start_main_signal.emit() # 시그널 발생
-        self.close() # 현재 StartWindow 닫기    
+        if not self.current_config:
+            self.current_config = self.get_default_config()
         
+        # config와 함께 시그널 전송
+        print('current_config',self.current_config)
+        self.start_main_signal.emit(self.current_config)
+        self.close() # 현재 StartWindow 닫기    
+                        
     def openFolder(self):
         """ 
         폴더 열기 메서드
@@ -339,4 +350,74 @@ class StartWindow(QWidget):
         else:
             print(f"경로가 존재하지 않습니다. {folder_path}")
 
+    def openConfig(self):
+        try:
+            # 완전히 독립적인 창으로 생성
+            config_window = ConfigWindow()
+            
+            # 창 설정을 더 명확하게
+            config_window.setParent(None)
+            config_window.setAttribute(Qt.WA_DeleteOnClose, True)
+            
+            # 초기 설정값 로드
+            if hasattr(self, 'current_config') and self.current_config:
+                config_window.load_initial_config(self.current_config)
+            
+            # 시그널 연결
+            config_window.config_changed.connect(self.on_config_changed)
+            
+            # 창 표시
+            config_window.show()  # exec_() 대신 show() 사용
+            
+        except Exception as e:
+            print(f"ConfigWindow 열기 오류: {e}")
     
+    def get_default_config(self):
+        """기본 설정값 반환"""
+        import json
+        default_config = {
+            "confidence": 0.65,
+            "cam1_mute": False,
+            "cam2_mute": False,
+            "show_labels": True,
+            "default_confidence": 0.6,
+            "default_cam1_mute": False,
+            "default_cam2_mute": False,
+            "default_show_labels": True
+        }
+        return json.dumps(default_config, ensure_ascii=False)
+    
+    def on_config_changed(self, config_json):
+        """JSON 형태로 모든 설정을 한번에 받기"""
+        print("받은 설정 JSON:", config_json)
+        self.current_config = config_json
+        
+        # JSON을 딕셔너리로 파싱해서 사용
+        import json
+        config = json.loads(config_json)
+        print(f"Confidence: {config['confidence']}")
+        print(f"Cam1 Mute: {config['cam1_mute']}")
+        print(f"Cam2 Mute: {config['cam2_mute']}")
+        print(f"Show Labels: {config['show_labels']}")
+        
+        # MainWindow에 전달
+        self.send_config_to_main_window(config_json)
+    
+    def send_config_to_main_window(self, config_json):
+        """MainWindow에 설정 전달"""
+        # 방법 1: 직접 메서드 호출
+        if hasattr(self, 'main_window'):
+            self.main_window.update_config(config_json)
+            
+        # 방법 2: 시그널로 전달
+        # self.config_signal.emit(config_json)
+    
+    def on_confidence_changed(self, confidence):
+        """개별 설정 변경 (기존 방식)"""
+        print(f"Confidence 변경: {confidence}")
+    
+    def on_sound_changed(self, cam1_mute, cam2_mute):
+        print(f"Sound 설정 변경: Cam1={cam1_mute}, Cam2={cam2_mute}")
+    
+    def on_label_changed(self, show_labels):
+        print(f"Label 설정 변경: {show_labels}")

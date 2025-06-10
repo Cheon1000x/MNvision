@@ -3,5 +3,7 @@ opencv-python==4.11.0.86
 pyqt5==5.15.7
 onnx==1.17.0
 onnxruntime == 1.19.2
-numpy == 2.0.1
 pygame == 2.6.1
+numpy == 2.0.1
+
+## numpy 버전 2 이하로 설치해야함

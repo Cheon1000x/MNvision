@@ -4,7 +4,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 
 class SplashScreen(QSplashScreen):
-    # 로딩 완료 신호를 보낼 수 있습니다.
+    # 로딩 완료 신호를 보낼 수 있습니다.    
     finished = pyqtSignal() 
 
     def __init__(self, parent=None):
