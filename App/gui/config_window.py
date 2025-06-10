@@ -22,6 +22,18 @@ class ConfigWindow(QDialog):
         
         # 기본값으로 설정값 로드
         self._load_from_settings()
+        
+        self.setStyleSheet(f""" 
+                           background-color:#161616;
+                           color:#e6e6e6;
+                           
+                           
+                           QPushButton {{
+                               border: 1px solid white;
+                               
+                               
+                           }}
+                           """)
             
         # 창 플래그 설정 - 독립적인 창으로 만들기
         self.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
@@ -53,13 +65,13 @@ class ConfigWindow(QDialog):
             self.current_confidence = config.get("confidence", 0.5)
             self.cam1_mute = config.get("cam1_mute", False)
             self.cam2_mute = config.get("cam2_mute", False)
-            self.show_labels = config.get("show_labels", True)
+            self.show_labels = config.get("show_labels", False)
             
             # 기본값들
             self.default_confidence = config.get("default_confidence", 0.6)
             self.default_cam1_mute = config.get("default_cam1_mute", False)
             self.default_cam2_mute = config.get("default_cam2_mute", False)
-            self.default_show_labels = config.get("default_show_labels", True)
+            self.default_show_labels = config.get("default_show_labels", False)
             
         except (json.JSONDecodeError, AttributeError):
             self._load_from_settings()
@@ -69,11 +81,11 @@ class ConfigWindow(QDialog):
         self.current_confidence = self.settings.value("confidence", 0.5, type=float)
         self.cam1_mute = self.settings.value("cam1_mute", False, type=bool)
         self.cam2_mute = self.settings.value("cam2_mute", False, type=bool)
-        self.show_labels = self.settings.value("show_labels", True, type=bool)
+        self.show_labels = self.settings.value("show_labels", False, type=bool)
         self.default_confidence = self.settings.value("default_confidence", 0.5, type=float)
         self.default_cam1_mute = self.settings.value("default_cam1_mute", False, type=bool)
         self.default_cam2_mute = self.settings.value("default_cam2_mute", False, type=bool)
-        self.default_show_labels = self.settings.value("default_show_labels", True, type=bool)
+        self.default_show_labels = self.settings.value("default_show_labels", False, type=bool)
 
     def get_config_json(self):
         """현재 설정을 JSON 문자열로 반환"""

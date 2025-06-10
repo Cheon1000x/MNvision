@@ -25,15 +25,15 @@ class MainWindow(QMainWindow):
         if config is None:
             self.config = {
                 "confidence": 0.6,
-                "cam1_mute": False,
-                "cam2_mute": False,
-                "show_labels": True
+                "cam1_mute": True,
+                "cam2_mute": True,
+                "show_labels": False
             }
             print('default')
         else:
             self.config = json.loads(config)
             
-        print(self.config)
+        # print(self.config)
         
         ## 컨트롤할 변수들 생성 - 통합 초기화
         self.video_widgets = {}
@@ -74,6 +74,7 @@ class MainWindow(QMainWindow):
             }
         """)
         self.setCentralWidget(central_widget)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         main_layout = QVBoxLayout(central_widget)
         main_layout.setContentsMargins(0,10,0,10)
         
@@ -574,12 +575,34 @@ class MainWindow(QMainWindow):
             lv = LogViewer(cam_id)
             lv.setContentsMargins(0, 0, 0, 0)
             lv.setFixedWidth(vw_size[0])
-            lv.mute_opt_TF.connect(vw.vthread.alert_manager.mute_contorl)
             
-            if config[f'cam{cam_id}_mute'] != lv.mute_opt_TF:
-                lv.mute_opt_TF.emit(config[f'cam{cam_id}_mute'], cam_id)
+            
+            print('-1')
+            print("config[f'cam cam_id_mute']", config[f'cam{cam_id}_mute'])
+            print('-1')
+            print('lv.mute_optl', lv.mute_opt)
+            print('vw.vthread.alert_manager.mute_opt', vw.vthread.alert_manager.mute_opt)
+            print('-1')
+            
+            if config[f'cam{cam_id}_mute'] != lv.mute_opt:
+                vw.vthread.alert_manager.mute_opt = config[f'cam{cam_id}_mute']
+                lv.mute_opt = config[f'cam{cam_id}_mute']
+                print('lv.load_mute_btn ')
+                lv.load_mute_btn()
+                # print("config[f'cam cam_id_mute']", config[f'cam{cam_id}_mute'], '==', lv.mute_opt)
             else:
                 pass
+            
+            lv.mute_opt_TF.connect(vw.vthread.alert_manager.mute_control)
+            lv.mute_opt_TF.connect(lv.mute_control)
+            
+            print('-')
+            print("config[f'cam cam_id_mute']", config[f'cam{cam_id}_mute'])
+            print('-')
+            print('lv.mute_optl', lv.mute_opt)
+            print('vw.vthread.alert_manager.mute_opt', vw.vthread.alert_manager.mute_opt)
+            print('-')
+            
             
             self.log_viewers[cam_id] = lv  # ✅ 딕셔너리에 저장 추가
             

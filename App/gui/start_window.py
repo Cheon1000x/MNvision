@@ -1,7 +1,7 @@
 import subprocess
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,  QSplashScreen, QProgressBar, QVBoxLayout, QLabel,
-    QPushButton
+    QPushButton, QSizePolicy
 )
 import os, json
 from PyQt5.QtGui import QFont, QGuiApplication, QCursor, QIcon, QMouseEvent
@@ -16,7 +16,7 @@ class StartWindow(QWidget):
     def __init__(self):
         super().__init__()
         ## 컨트롤할 변수들 생성 - 통합 초기화
-        self.current_config = None
+        self.current_config = self.get_default_config() 
         
         self.old_pos = None 
         self.normal_geometry = self.geometry() 
@@ -27,6 +27,7 @@ class StartWindow(QWidget):
         self.setStyleSheet(""" background-image: url(resources/icons/bg_start.png);
                 background-repeat: no-repeat;
                 background-position: center; """)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         # self.setWindowTitle("Forklift Detection")
         
         self.setMinimumSize(600, 400)
@@ -375,15 +376,16 @@ class StartWindow(QWidget):
     def get_default_config(self):
         """기본 설정값 반환"""
         import json
+        print( 'default loaded')
         default_config = {
             "confidence": 0.65,
-            "cam1_mute": False,
-            "cam2_mute": False,
-            "show_labels": True,
+            "cam1_mute": True,
+            "cam2_mute": True,
+            "show_labels": False,
             "default_confidence": 0.6,
-            "default_cam1_mute": False,
-            "default_cam2_mute": False,
-            "default_show_labels": True
+            "default_cam1_mute": True,
+            "default_cam2_mute": True,
+            "default_show_labels": False
         }
         return json.dumps(default_config, ensure_ascii=False)
     

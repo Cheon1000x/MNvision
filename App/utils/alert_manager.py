@@ -28,16 +28,19 @@ class AlertManager(QObject):
             if not self.is_playing:
                 self.play_alert_sound(message)
                 
-    def mute_contorl(self):
-        print('am.mute_opt',self.mute_opt, self.cam_num)
-        if self.mute_opt:
+    def mute_control(self, mute_status: bool, camera_id: int):
+        # mute_status에는 True (bool)가, camera_id에는 1 (int)이 전달됩니다.
+        print(f"음소거 상태: {mute_status}, 카메라 ID: {camera_id}")
+        if mute_status:
             self.mute_opt = False
-        else: 
+        else:
             self.mute_opt = True
+        print('lv.mute_opt',self.mute_opt, self.cam_num)
            
 
     def play_alert_sound(self, message, sound_path=os.path.abspath('./resources/etc/')):
         if self.mute_opt:
+            print('self.mute_opt alert', self.mute_opt)
             return
         else:
             def play():
@@ -54,8 +57,10 @@ class AlertManager(QObject):
 
     def trigger_alert(self, message, sound_path=os.path.abspath('./resources/etc/forklift_away.wav')):
         if self.mute_opt:
+            print('self.mute_opt 포크리프트 재생안함', self.mute_opt)
             return
         else:
+            print('self.mute_opt 포크리프트 재생', self.mute_opt)
             now = time.time()
             if now - self.last_alert_time > self.cooldown_seconds:
                 self.last_alert_time = now

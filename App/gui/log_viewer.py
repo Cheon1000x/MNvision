@@ -48,13 +48,8 @@ class LogViewer(QWidget):
             }
         """
         ## UI 생성 선언
-        self.mute_opt = True
+        self.mute_opt = False
         self.initUI()
-        self.mute_control()
-        print('self.mute_opt',self.mute_opt)
-        
-        
-        
 
     def initUI(self):
         lv_main = QWidget()
@@ -150,7 +145,7 @@ class LogViewer(QWidget):
         
         ## 갱신refresh 버튼
         sound_btn = QPushButton("")
-        sound_btn.clicked.connect(self.mute_control)
+        sound_btn.clicked.connect(self.lv_emit)
         sound_btn.setFixedSize(80, 80)
         sound_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.sound_btn = sound_btn
@@ -179,6 +174,50 @@ class LogViewer(QWidget):
 
         btn_layout.addStretch(1)
         
+        if self.mute_opt == True:
+            print("self.mute_opt css load", self.mute_opt)
+            self.sound_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-image: url(resources/icons/mute.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    background-color: transparent;
+                }}
+                QPushButton:hover {{
+                    background-image: url(resources/icons/mute_c.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    background-color: transparent;
+                }} 
+                QPushButton:pressed {{
+                    background-image: url(resources/icons/mute_b.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    background-color: transparent;
+                }}
+            """)  
+        else: 
+            print("self.mute_opt css load", self.mute_opt)
+            self.sound_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-image: url(resources/icons/sound.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    background-color: transparent;
+                }}
+                QPushButton:hover {{
+                    background-image: url(resources/icons/sound_c.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    background-color: transparent;
+                }} 
+                QPushButton:pressed {{
+                    background-image: url(resources/icons/sound_b.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    background-color: transparent;
+                }}
+            """)  
 
         refresh_btn.setStyleSheet(f"""
             QPushButton {{
@@ -319,31 +358,20 @@ class LogViewer(QWidget):
                         final_width = max(desired_width, min_widths[col])
                         self.table.setColumnWidth(col, final_width)
 
-    def mute_control(self):
-        if self.mute_opt:
+    def lv_emit(self):
+        self.mute_opt_TF.emit(self.mute_opt, self.cam_num)
+
+    def mute_control(self, mute_status: bool, camera_id: int):
+        if mute_status:
             self.mute_opt = False
-            self.sound_btn.setStyleSheet(f"""
-                QPushButton {{
-                    background-image: url(resources/icons/sound.png);
-                    background-repeat: no-repeat;
-                    background-position: center;
-                    background-color: transparent;
-                }}
-                QPushButton:hover {{
-                    background-image: url(resources/icons/sound_c.png);
-                    background-repeat: no-repeat;
-                    background-position: center;
-                    background-color: transparent;
-                }} 
-                QPushButton:pressed {{
-                    background-image: url(resources/icons/sound_b.png);
-                    background-repeat: no-repeat;
-                    background-position: center;
-                    background-color: transparent;
-                }}
-            """)  
-        else: 
+        else:
             self.mute_opt = True
+        self.load_mute_btn()
+        print('lv.mute_opt',self.mute_opt, self.cam_num)
+        
+    
+    def load_mute_btn(self) :
+        if self.mute_opt == True:
             self.sound_btn.setStyleSheet(f"""
                 QPushButton {{
                     background-image: url(resources/icons/mute.png);
@@ -364,8 +392,27 @@ class LogViewer(QWidget):
                     background-color: transparent;
                 }}
             """)  
-        print('lv.mute_opt',self.mute_opt, self.cam_num)
-        self.mute_opt_TF.emit(self.mute_opt, self.cam_num)
+        else: 
+            self.sound_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-image: url(resources/icons/sound.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    background-color: transparent;
+                }}
+                QPushButton:hover {{
+                    background-image: url(resources/icons/sound_c.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    background-color: transparent;
+                }} 
+                QPushButton:pressed {{
+                    background-image: url(resources/icons/sound_b.png);
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    background-color: transparent;
+                }}
+            """)  
         
 
     def openFolder(self):
