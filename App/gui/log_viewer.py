@@ -132,7 +132,7 @@ class LogViewer(QWidget):
         self.table.verticalHeader().setVisible(True)
         self.table.horizontalHeader().setStretchLastSection(True)
         # self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        # self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         
         ## 버튼 레이아웃        
         btnWidget = QWidget()

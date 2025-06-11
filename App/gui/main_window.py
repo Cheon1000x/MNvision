@@ -441,7 +441,11 @@ class MainWindow(QMainWindow):
             info_widget.setLayout(info_layout)
             
             info_layout.setContentsMargins(20,0,20,0)
-            info_layout.setSpacing(50)
+            print()
+            if vw_size[0] < 900:
+                info_layout.setSpacing(5)    
+            else:
+                info_layout.setSpacing(50)
             self.info_widgets[cam_id] = info_widget
 
             info00w = QWidget()
@@ -563,14 +567,14 @@ class MainWindow(QMainWindow):
 
             info_layout.addWidget(info00w, alignment=Qt.AlignLeft)
             info_layout.addWidget(info01w, alignment=Qt.AlignLeft)
-            info_layout.addWidget(info02w, alignment=Qt.AlignCenter)
+            info_layout.addWidget(info02w, alignment=Qt.AlignLeft)
             info_layout.addWidget(reset_btn, alignment=Qt.AlignRight)
 
             # LogViewer
             lv = LogViewer(cam_id)
             lv.setContentsMargins(0, 0, 0, 0)
             lv.setFixedWidth(vw_size[0])
-            lv.setFixedHeight(self.size.height() - (vw_size[1] + 130 + 40))
+            lv.setFixedHeight(self.size.height() - (vw_size[1] + 130 + 40 + 20))
             # lv.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
             
             
@@ -626,7 +630,7 @@ class MainWindow(QMainWindow):
 
             # 레이아웃 추가
             cam_layout.addWidget(vw, alignment=Qt.AlignCenter)
-            cam_layout.addWidget(info_widget, alignment=Qt.AlignCenter)
+            cam_layout.addWidget(info_widget, alignment=Qt.AlignHCenter | Qt.AlignTop)
             cam_layout.addWidget(lv, alignment=Qt.AlignCenter)
             self.video_layout.addWidget(cam_widget)
 
@@ -840,8 +844,8 @@ class MainWindow(QMainWindow):
         width = screen_size.width()
 
         if self.video_widgets:
-            new_width = int((width - 200) * 0.5)
-            new_height = int((width - 200) * 9 / 32)
+            new_width = int((width - 220) * 0.5)
+            new_height = int((width - 220) * 9 / 32)
 
             for cam_id, vw in self.video_widgets.items():
                 vw.setFixedSize(new_width, new_height)
@@ -854,6 +858,8 @@ class MainWindow(QMainWindow):
                     vw.vthread.set_ui_size(new_width, new_height)
                 if log_viewer:
                     log_viewer.setFixedWidth(new_width)
+                    
+                    
                     
     def loadConfig(self):
         with open('config.json', encoding='utf-8') as config:
