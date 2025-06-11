@@ -1,0 +1,231 @@
+
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>PT vs ONNX 벤치마크 결과</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f5f5f5;
+            }
+            .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 30px;
+                border-radius: 10px;
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            .card {
+                background: white;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            .metric-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+                margin: 20px 0;
+            }
+            .metric-card {
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                color: white;
+                padding: 20px;
+                border-radius: 10px;
+                text-align: center;
+            }
+            .metric-value {
+                font-size: 2em;
+                font-weight: bold;
+                margin: 10px 0;
+            }
+            .image-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+                gap: 20px;
+                margin: 20px 0;
+            }
+            .image-card {
+                text-align: center;
+            }
+            .image-card img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+            }
+            th, td {
+                padding: 12px;
+                text-align: left;
+                border-bottom: 1px solid #ddd;
+            }
+            th {
+                background-color: #4CAF50;
+                color: white;
+            }
+            tr:hover {
+                background-color: #f5f5f5;
+            }
+            .footer {
+                text-align: center;
+                margin-top: 40px;
+                padding: 20px;
+                color: #666;
+            }
+            .alert {
+                background-color: #e7f3ff;
+                border: 1px solid #b3d9ff;
+                border-radius: 5px;
+                padding: 15px;
+                margin: 15px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>🔬 PT vs ONNX 모델 성능 벤치마크</h1>
+            <p>생성 시간: 2025년 06월 10일 16:15:05</p>
+        </div>
+        
+        <div class="card">
+            <h2>📊 주요 성능 지표</h2>
+            <div class="metric-grid">
+                <div class="metric-card" style="background: linear-gradient(135deg, #FF6B6B 0%, #FF6B6BAA 100%);">
+                    <div class="metric-value">10.1x</div>
+                    <div>평균 속도 향상</div>
+                </div>
+                <div class="metric-card" style="background: linear-gradient(135deg, #4ECDC4 0%, #4ECDC4AA 100%);">
+                    <div class="metric-value">0.0%</div>
+                    <div>평균 클래스 정확도</div>
+                </div>
+                <div class="metric-card" style="background: linear-gradient(135deg, #45B7D1 0%, #45B7D1AA 100%);">
+                    <div class="metric-value">0.986</div>
+                    <div>평균 IoU</div>
+                </div>
+                <div class="metric-card" style="background: linear-gradient(135deg, #96CEB4 0%, #96CEB4AA 100%);">
+                    <div class="metric-value">95.7%</div>
+                    <div>전체 매칭률</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📈 성능 분석 그래프</h2>
+            <div class="alert">
+                <strong>💡 참고:</strong> 아래 그래프들을 클릭하면 더 큰 크기로 볼 수 있습니다.
+            </div>
+            <div class="image-grid">
+                <div class="image-card">
+                    <h3>성능 대시보드</h3>
+                    <a href="performance_dashboard.png" target="_blank">
+                        <img src="performance_dashboard.png" alt="성능 대시보드">
+                    </a>
+                    <p>전체적인 성능 비교와 주요 메트릭을 한눈에 볼 수 있습니다.</p>
+                </div>
+                <div class="image-card">
+                    <h3>클래스별 분석</h3>
+                    <a href="class_analysis.png" target="_blank">
+                        <img src="class_analysis.png" alt="클래스별 분석">
+                    </a>
+                    <p>각 클래스별 정밀도, 재현율, F1 점수를 분석합니다.</p>
+                </div>
+                <div class="image-card">
+                    <h3>시간 추이 분석</h3>
+                    <a href="time_analysis.png" target="_blank">
+                        <img src="time_analysis.png" alt="시간 추이 분석">
+                    </a>
+                    <p>시간에 따른 성능 변화와 안정성을 확인합니다.</p>
+                </div>
+                <div class="image-card">
+                    <h3>IoU 분포 분석</h3>
+                    <a href="iou_analysis.png" target="_blank">
+                        <img src="iou_analysis.png" alt="IoU 분포 분석">
+                    </a>
+                    <p>IoU 분포와 정확도 간의 상관관계를 분석합니다.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📁 생성된 파일 목록</h2>
+            <div class="alert">
+                <strong>📋 파일 설명:</strong>
+                <ul>
+                    <li><strong>benchmark_results.json</strong> - 모든 벤치마크 결과 데이터 (JSON 형식)</li>
+                    <li><strong>detailed_report.txt</strong> - 상세한 텍스트 리포트</li>
+                    <li><strong>performance_dashboard.png</strong> - 종합 성능 대시보드</li>
+                    <li><strong>class_analysis.png</strong> - 클래스별 성능 분석</li>
+                    <li><strong>time_analysis.png</strong> - 시간 추이 및 안정성 분석</li>
+                    <li><strong>iou_analysis.png</strong> - IoU 분포 및 상관관계 분석</li>
+                    <li><strong>detection_*.png</strong> - 개별 이미지 탐지 결과 비교</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>🎯 결과 요약</h2>
+            <table>
+                <tr>
+                    <th>항목</th>
+                    <th>PT 모델</th>
+                    <th>ONNX 모델</th>
+                    <th>개선도</th>
+                </tr>
+                <tr>
+                    <td>평균 추론 시간</td>
+                    <td id="pt-time">-</td>
+                    <td id="onnx-time">-</td>
+                    <td id="speed-improvement">-</td>
+                </tr>
+                <tr>
+                    <td>평균 탐지 수</td>
+                    <td id="pt-detections">-</td>
+                    <td id="onnx-detections">-</td>
+                    <td id="detection-difference">-</td>
+                </tr>
+                <tr>
+                    <td>매칭 정확도</td>
+                    <td colspan="2" id="match-accuracy">-</td>
+                    <td>-</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="footer">
+            <p>🔬 이 리포트는 PT와 ONNX 모델의 성능을 종합적으로 비교한 결과입니다.</p>
+            <p>📄 자세한 내용은 <a href="detailed_report.txt">detailed_report.txt</a> 파일을 참조하세요.</p>
+            <p>💾 원시 데이터는 <a href="benchmark_results.json">benchmark_results.json</a> 파일에서 확인할 수 있습니다.</p>
+        </div>
+        
+        <script>
+            // JSON 데이터를 로드하여 동적으로 표시 (실제 구현에서는 fetch 사용)
+            function loadBenchmarkData() {
+                // 실제로는 benchmark_results.json에서 데이터를 로드
+                // 여기서는 예시 데이터 사용
+                document.getElementById('pt-time').textContent = '-';
+                document.getElementById('onnx-time').textContent = '-';
+                document.getElementById('speed-improvement').textContent = '10.1x';
+                document.getElementById('pt-detections').textContent = '-';
+                document.getElementById('onnx-detections').textContent = '-';
+                document.getElementById('detection-difference').textContent = '-';
+                document.getElementById('match-accuracy').textContent = '0.0%';
+            }
+            
+            // 페이지 로드 시 데이터 로드
+            window.onload = loadBenchmarkData;
+        </script>
+    </body>
+    </html>
+    
