@@ -17,7 +17,7 @@ class ConfigWindow(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("설정")
+        self.setWindowTitle("Config")
         self.settings = QSettings("MyOrganization", "MyApplication")
         
         # 기본값으로 설정값 로드
@@ -26,14 +26,21 @@ class ConfigWindow(QDialog):
         self.setStyleSheet(f""" 
                            background-color:#161616;
                            color:#e6e6e6;
-                           
-                           
+                           font-size: 20px;
+
+                           """)
+        self.btn_ss = f""" 
                            QPushButton {{
                                border: 1px solid white;
-                               
-                               
+                               padding: 1px 6px;
                            }}
-                           """)
+                           
+                           QPushButton:hover {{
+                               color: #2FDFD9;
+                               border: 1px solid #2FDFD9;
+                           }}
+                           
+                        """
             
         # 창 플래그 설정 - 독립적인 창으로 만들기
         self.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowCloseButtonHint)
@@ -114,16 +121,18 @@ class ConfigWindow(QDialog):
             "default_show_labels": self.default_show_labels
         }
 
+    
     def _setup_ui(self):
         """UI 구성"""
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
+        
 
         # --- Confidence 설정 ---
-        confidence_group = QGroupBox("Confidence 설정")
+        confidence_group = QGroupBox("Confidence Config")
         conf_layout = QVBoxLayout()
         confidence_input_layout = QHBoxLayout()
-        self.conf_label_prefix = QLabel("현재 값:")
+        self.conf_label_prefix = QLabel("current:")
         self.confidence_spinbox = QDoubleSpinBox()
         self.confidence_spinbox.setRange(0.00, 1.00)
         self.confidence_spinbox.setSingleStep(0.01)
@@ -144,18 +153,19 @@ class ConfigWindow(QDialog):
         conf_layout.addWidget(self.confidence_slider)
 
         conf_button_layout = QHBoxLayout()
-        self.reset_conf_btn = QPushButton("기본값으로 재설정")
+        self.reset_conf_btn = QPushButton("Load Default")
         self.reset_conf_btn.clicked.connect(self._reset_confidence_to_default)
-        self.set_conf_as_default_btn = QPushButton("현재 값을 기본값으로 저장")
+        self.set_conf_as_default_btn = QPushButton("Update Default")
         self.set_conf_as_default_btn.clicked.connect(self._set_current_confidence_as_default)
         conf_button_layout.addWidget(self.reset_conf_btn)
         conf_button_layout.addWidget(self.set_conf_as_default_btn)
         conf_layout.addLayout(conf_button_layout)
         confidence_group.setLayout(conf_layout)
+        confidence_group.setStyleSheet(self.btn_ss)
         main_layout.addWidget(confidence_group)
 
         # --- 소리 설정 ---
-        sound_group = QGroupBox("소리 설정")
+        sound_group = QGroupBox("Sound Config")
         sound_layout = QVBoxLayout()
 
         self.sound_checkbox1 = QCheckBox("cam1 mute")
@@ -169,42 +179,44 @@ class ConfigWindow(QDialog):
         sound_layout.addWidget(self.sound_checkbox2)
 
         sound_button_layout = QHBoxLayout()
-        self.reset_sound_btn = QPushButton("기본값으로 재설정")
+        self.reset_sound_btn = QPushButton("Load Default")
         self.reset_sound_btn.clicked.connect(self._reset_sound_to_default)
-        self.set_sound_as_default_btn = QPushButton("현재 값을 기본값으로 저장")
+        self.set_sound_as_default_btn = QPushButton("Update Default")
         self.set_sound_as_default_btn.clicked.connect(self._set_current_sound_as_default)
         sound_button_layout.addWidget(self.reset_sound_btn)
         sound_button_layout.addWidget(self.set_sound_as_default_btn)
         sound_layout.addLayout(sound_button_layout)
 
         sound_group.setLayout(sound_layout)
+        sound_group.setStyleSheet(self.btn_ss)
         main_layout.addWidget(sound_group)
 
         # --- 라벨 출력 여부 설정 ---
-        label_group = QGroupBox("라벨 출력 설정")
+        label_group = QGroupBox("Print Label Config")
         label_layout = QVBoxLayout()
 
-        self.label_checkbox = QCheckBox("라벨 출력")
+        self.label_checkbox = QCheckBox("Print Label")
         self.label_checkbox.setChecked(self.show_labels)
         self.label_checkbox.stateChanged.connect(self._update_label_setting)
         label_layout.addWidget(self.label_checkbox)
 
         label_button_layout = QHBoxLayout()
-        self.reset_label_btn = QPushButton("기본값으로 재설정")
+        self.reset_label_btn = QPushButton("Load Default")
         self.reset_label_btn.clicked.connect(self._reset_label_to_default)
-        self.set_label_as_default_btn = QPushButton("현재 값을 기본값으로 저장")
+        self.set_label_as_default_btn = QPushButton("Update Default")
         self.set_label_as_default_btn.clicked.connect(self._set_current_label_as_default)
         label_button_layout.addWidget(self.reset_label_btn)
         label_button_layout.addWidget(self.set_label_as_default_btn)
         label_layout.addLayout(label_button_layout)
         
         label_group.setLayout(label_layout)
+        label_group.setStyleSheet(self.btn_ss)
         main_layout.addWidget(label_group)
         
         # --- 확인/취소 버튼 ---
         button_layout = QHBoxLayout()
-        cancel_btn = QPushButton("취소")
-        confirm_btn = QPushButton("확인")
+        cancel_btn = QPushButton("Cancel")
+        confirm_btn = QPushButton("Confirm")
         
         button_layout.addStretch(1)
         button_layout.addWidget(cancel_btn)
@@ -213,6 +225,10 @@ class ConfigWindow(QDialog):
 
         cancel_btn.clicked.connect(self.reject)  # reject()로 변경
         confirm_btn.clicked.connect(self._apply_settings)
+        
+        cancel_btn.setStyleSheet(self.btn_ss)
+        confirm_btn.setStyleSheet(self.btn_ss)
+        
 
     def _update_confidence_from_slider(self, value):
         self.current_confidence = value / 100.0

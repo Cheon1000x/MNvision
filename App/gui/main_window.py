@@ -2,8 +2,8 @@ KMP_DUPLICATE_LIB_OK='TRUE'
 
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QPushButton, QTabWidget, QSizePolicy, QLabel, QGraphicsDropShadowEffect,
-    QApplication
+    QPushButton, QSizePolicy, QLabel, QGraphicsDropShadowEffect,
+    QApplication, QSpacerItem 
 )
 from functools import partial
 import os, json
@@ -364,7 +364,6 @@ class MainWindow(QMainWindow):
         painter.drawPixmap(widget.rect(), scaled_pixmap)    
     
         
-        
     def on_start(self, config):
 
         """ 
@@ -574,8 +573,8 @@ class MainWindow(QMainWindow):
             lv = LogViewer(cam_id)
             lv.setContentsMargins(0, 0, 0, 0)
             lv.setFixedWidth(vw_size[0])
-            lv.setFixedHeight(self.size.height() - (vw_size[1] + 130 + 40 + 20))
-            # lv.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+            # lv.setFixedHeight(self.size.height() - (vw_size[1] + 130 + 40 + 20))
+            lv.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
             
             
             print('-1')
@@ -629,7 +628,8 @@ class MainWindow(QMainWindow):
                 vw.video_saver.log_appended_signal.connect(lv.append_log_text, type=Qt.QueuedConnection)
 
             # 레이아웃 추가
-            cam_layout.addWidget(vw, alignment=Qt.AlignCenter)
+            cam_layout.addWidget(vw, alignment=Qt.AlignCenter| Qt.AlignTop)
+            # cam_layout.addWidget(info_widget, alignment=Qt.AlignHCenter)
             cam_layout.addWidget(info_widget, alignment=Qt.AlignHCenter | Qt.AlignTop)
             cam_layout.addWidget(lv, alignment=Qt.AlignCenter)
             self.video_layout.addWidget(cam_widget)
