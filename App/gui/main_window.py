@@ -5,8 +5,9 @@ from PyQt5.QtWidgets import (
     QPushButton, QTabWidget, QSizePolicy, QLabel, QGraphicsDropShadowEffect,
     QApplication
 )
+from functools import partial
 import os, json
-from PyQt5.QtGui import QFontDatabase, QFont, QGuiApplication, QCursor, QIcon, QMouseEvent 
+from PyQt5.QtGui import QFontDatabase, QFont, QGuiApplication, QCursor, QIcon, QMouseEvent, QPixmap, QPainter
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 from gui.video_widget import VideoWidget
 from gui.roi_editor import ROIEditor
@@ -47,8 +48,10 @@ class MainWindow(QMainWindow):
         self.event_labels = {}  
         self.info_labels = {}
         
-        self.info_sss = None
-        self.infor_sss = None
+        
+        self.bg_info_pixmap = QPixmap("resources/icons/bg_info.png")
+        self.bg_info_r_pixmap = QPixmap("resources/icons/bg_info_r.png")
+            
         
         self.old_pos = None 
         # QMainWindow는 frameGeometry()를 사용하면 창 테두리까지 포함한 정확한 크기를 얻습니다.
@@ -65,26 +68,39 @@ class MainWindow(QMainWindow):
         ## 전체 영역 분할
         central_widget = QWidget()
         central_widget.setObjectName("central_widget")  # ✔ 스타일링 타겟 명확히
+        
+        def custom_paint_event(widget, pixmap, event):
+            painter = QPainter(widget)
+            scaled_pixmap = pixmap.scaled(widget.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.drawPixmap(widget.rect(), scaled_pixmap)    
 
-        central_widget.setStyleSheet("""
-            #central_widget {
-                background-image: url(resources/icons/bg.png);
-                background-repeat: no-repeat;
-                background-position: center;
-            }
-        """)
+        bg_central_pixmap = QPixmap("resources/icons/bg.png")
+        central_widget.paintEvent = partial(custom_paint_event, central_widget, bg_central_pixmap)
+        
+        # central_widget.setStyleSheet("""
+        #     #central_widget {
+        #         background-image: url(resources/icons/bg.png);
+        #         background-repeat: no-repeat;
+        #         background-position: center;
+                
+        #     }
+        # """)
+        
         self.setCentralWidget(central_widget)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(0,10,0,10)
+        main_layout.setContentsMargins(0,0,0,30)
+        main_layout.setSpacing(0)
         
         ## UI 영역 설정
         self.ui_area = QWidget()
         ui_layout = QHBoxLayout(self.ui_area)
-        ui_layout.setContentsMargins(50,0,0,0)
+        ui_layout.setContentsMargins(50,0,0,-10)
         self.ui_area.setFixedHeight(50) 
-        # self.ui_area.setStyleSheet("background-color: #161616;")
-        main_layout.addWidget(self.ui_area, alignment=Qt.AlignCenter) 
+        # self.ui_area.setStyleSheet(" background-color: white;")
+        main_layout.addWidget(self.ui_area, alignment=Qt.AlignTop) 
         
         # 스타일시트 통합
         self.btn_design = """
@@ -139,7 +155,6 @@ class MainWindow(QMainWindow):
             }} 
             QPushButton:pressed {{
                 background-color: #00D2B5;
-                
                 border-radius:5px;
                 background-image: url(resources/icons/config_mb.png);
                 background-repeat: no-repeat;
@@ -231,7 +246,7 @@ class MainWindow(QMainWindow):
         self.video_area = QWidget()
         self.video_layout = QHBoxLayout()
         self.video_layout.setContentsMargins(40,0,40,0)
-        self.video_layout.setSpacing(20)
+        self.video_layout.setSpacing(40)
         self.video_area.setLayout(self.video_layout)
         
         main_layout.addWidget(self.video_area)
@@ -339,7 +354,15 @@ class MainWindow(QMainWindow):
         """현재 설정을 JSON으로 반환"""
         import json
         return json.dumps(self.config, ensure_ascii=False)    
-        
+    
+
+    # paintEvent 오버라이드
+    def custom_paint_event(self, widget, pixmap, event):
+        painter = QPainter(widget)
+        scaled_pixmap = pixmap.scaled(widget.size(), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.drawPixmap(widget.rect(), scaled_pixmap)    
+    
         
         
     def on_start(self, config):
@@ -357,21 +380,18 @@ class MainWindow(QMainWindow):
         
         if self.video_widgets:
             return
-        
+
         for cam_id in range(1, 3):  # CAM 1과 CAM 2
             cam_widget = QWidget()
-            cam_widget.setObjectName("cam_widget")  # ✔ 스타일링 타겟 명확히
+            cam_widget.setObjectName("cam_widget")
             
-            cam_widget.setStyleSheet(f"""
-                QWidget#cam_widget {{
-                background-image: url(resources/icons/bg_cam_test.png);
-                background-repeat: no-repeat;
-                background-position: center;
-                border-radius:  10px;
-                }}
-                           """)
+            bg_pixmap = QPixmap("resources/icons/bg_cam_test.png")
+            
+            # paintEvent를 각 위젯별로 개별 연결
+            cam_widget.paintEvent = partial(self.custom_paint_event, cam_widget, bg_pixmap)
+            
             cam_layout = QVBoxLayout(cam_widget)
-            cam_layout.setContentsMargins(20, 20, 20, 20)
+            cam_layout.setContentsMargins(0, 20, 0, 20)
             cam_layout.setSpacing(20)
             cam_widget.setLayout(cam_layout)
 
@@ -382,7 +402,7 @@ class MainWindow(QMainWindow):
             else:
                 vw.vthread.label_visible = True
             
-            vw_size = [int((self.size.width()-200) * 0.5), int((self.size.width()-200) * 9/32)]
+            vw_size = [int((self.size.width()-220) * 0.5), int((self.size.width()-220) * 9/32)]
             vw.setFixedSize(vw_size[0], vw_size[1])
             vw.setStyleSheet(""" 
                             border: 2px solid #000000;
@@ -407,38 +427,13 @@ class MainWindow(QMainWindow):
             ## 01, 02 는 최소 설정하되 비디오크기에 따라 변하도록.
             ## vw.setFixedSize(int((self.size.width()-180) * 0.5) 이므로 
             ## 신호등사이즈 120, 버튼 사이즈 100과 spacing 10씩 고려 총 240을 추가로 빼고 /2로 나누어 설정
-            # background-image: url(resources/icons/bg_info.png);
-            #     background-repeat: no-repeat;
-            #     background-position: center;
-            #     background-color: #ffffff;
-                
-            #     border: 10px solid white;
-            #     border-radius: 20px; 
-                
-            
-            
-            info_sss =(f"""
-                QWidget#info_widget {{
-                background-image: url(resources/icons/bg_info.png);
-                background-repeat: no-repeat;
-                background-position: center;
-                
-                }}
-            """)
-            infor_sss =(f"""
-                QWidget#info_widget {{
-                background-image: url(resources/icons/bg_info_r.png);
-                background-repeat: no-repeat;
-                background-position: center;
-                
-                }}
-            """)
-            self.info_sss = info_sss
-            self.infor_sss = infor_sss
-            
-            info_widget = QWidget()
-            info_widget.setObjectName("info_widget")  # ✔ 스타일링 타겟 명확히
-            info_widget.setStyleSheet(info_sss)
+                        
+            info_widget = QLabel()
+            info_widget.setObjectName(f"info_widget{cam_id}")  # ✔ 스타일링 타겟 명확히
+            # info_widget.setStyleSheet(info_sss)
+            info_widget.setScaledContents(True)
+            info_widget.setPixmap(self.bg_info_pixmap) 
+            # info_widget.paintEvent = partial(self.custom_paint_event, info_widget, self.bg_info_pixmap)
             info_width = vw_size[0]
             info_widget.setFixedSize(info_width, 130)
             
@@ -575,6 +570,8 @@ class MainWindow(QMainWindow):
             lv = LogViewer(cam_id)
             lv.setContentsMargins(0, 0, 0, 0)
             lv.setFixedWidth(vw_size[0])
+            lv.setFixedHeight(self.size.height() - (vw_size[1] + 130 + 40))
+            # lv.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
             
             
             print('-1')
@@ -653,8 +650,10 @@ class MainWindow(QMainWindow):
             }
         """)
         ## 빨강으로 바꿔야함
-        self.info_widgets[cam_num].setObjectName("info_widget")  # ✔ 스타일링 타겟 명확히
-        self.info_widgets[cam_num].setStyleSheet(self.infor_sss)
+        # self.info_widgets[cam_num].setObjectName("info_widget")  # ✔ 스타일링 타겟 명확히
+        # self.info_widgets[cam_num].setStyleSheet(self.infor_sss)
+        self.info_widgets[cam_num].setPixmap(self.bg_info_r_pixmap)
+
 
         def reset_to_green():
             # print(f"[타이머 만료] cam_num: {cam_num} - 초록불로 리셋 및 no event 설정.")
@@ -666,8 +665,9 @@ class MainWindow(QMainWindow):
                     border-radius: 5px;
                 }
             """)
-            self.info_widgets[cam_num].setObjectName("info_widget")  # ✔ 스타일링 타겟 명확히
-            self.info_widgets[cam_num].setStyleSheet(self.info_sss)
+            # self.info_widgets[cam_num].setObjectName("info_widget")  # ✔ 스타일링 타겟 명확히
+            # self.info_widgets[cam_num].setStyleSheet(self.info_sss)
+            self.info_widgets[cam_num].setPixmap(self.bg_info_pixmap) 
             event_label = self.event_labels.get(cam_num)
             if event_label:
                 event_label.setText("no event")
