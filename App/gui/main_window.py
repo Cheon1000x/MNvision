@@ -395,7 +395,7 @@ class MainWindow(QMainWindow):
             cam_widget.setLayout(cam_layout)
 
             # 비디오 위젯
-            vw = VideoWidget(cam_num=cam_id, video_path=f"resources/videos/sample{cam_id}.avi" , conf_threshold = config['confidence'])
+            vw = VideoWidget(cam_num=cam_id, video_path=f"resources/videos/sample{cam_id}.mp4" , conf_threshold = config['confidence'])
             if config['show_labels'] is False:
                 vw.vthread.label_visible = False
             else:
@@ -435,6 +435,7 @@ class MainWindow(QMainWindow):
             # info_widget.paintEvent = partial(self.custom_paint_event, info_widget, self.bg_info_pixmap)
             info_width = vw_size[0]
             info_widget.setFixedSize(info_width, 130)
+            # info_widget.setStyleSheet("background-color: white;")
             
             info_layout = QHBoxLayout()
             info_widget.setLayout(info_layout)
@@ -573,8 +574,9 @@ class MainWindow(QMainWindow):
             lv = LogViewer(cam_id)
             lv.setContentsMargins(0, 0, 0, 0)
             lv.setFixedWidth(vw_size[0])
-            # lv.setFixedHeight(self.size.height() - (vw_size[1] + 130 + 40 + 20))
-            lv.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+            # lv.setStyleSheet('background-color: white;')
+            lv.setFixedHeight(self.size.height() - (vw_size[1] + 130 + 40 + 20))
+            # lv.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
             
             
             print('-1')
@@ -631,7 +633,7 @@ class MainWindow(QMainWindow):
             cam_layout.addWidget(vw, alignment=Qt.AlignCenter| Qt.AlignTop)
             # cam_layout.addWidget(info_widget, alignment=Qt.AlignHCenter)
             cam_layout.addWidget(info_widget, alignment=Qt.AlignHCenter | Qt.AlignTop)
-            cam_layout.addWidget(lv, alignment=Qt.AlignCenter)
+            cam_layout.addWidget(lv, alignment=Qt.AlignCenter | Qt.AlignTop)
             self.video_layout.addWidget(cam_widget)
 
      
