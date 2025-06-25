@@ -75,7 +75,7 @@ class ConfigWindow(QDialog):
             self.show_labels = config.get("show_labels", False)
             
             # 기본값들
-            self.default_confidence = config.get("default_confidence", 0.6)
+            self.default_confidence = config.get("default_confidence", 0.55)
             self.default_cam1_mute = config.get("default_cam1_mute", False)
             self.default_cam2_mute = config.get("default_cam2_mute", False)
             self.default_show_labels = config.get("default_show_labels", False)

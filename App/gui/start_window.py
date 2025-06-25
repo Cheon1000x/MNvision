@@ -376,13 +376,13 @@ class StartWindow(QWidget):
     def get_default_config(self):
         """기본 설정값 반환"""
         import json
-        print( 'default loaded')
+        print('default loaded')
         default_config = {
-            "confidence": 0.65,
+            "confidence": 0.55,
             "cam1_mute": True,
             "cam2_mute": True,
             "show_labels": False,
-            "default_confidence": 0.6,
+            "default_confidence": 0.60,
             "default_cam1_mute": True,
             "default_cam2_mute": True,
             "default_show_labels": False

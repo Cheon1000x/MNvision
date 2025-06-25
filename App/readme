@@ -33,12 +33,14 @@ project/
 │   ├── logs/               # 로그 파일
 │   └── videos/             # 저장된 영상 파일
 │
-└── requirements.txt        # 프로젝트 의존성 파일 (선택사항)
+└── requirements.txt        # 프로젝트 의존성 파일 
 
 
 logs / models / videos 폴더 생성해야함
 models 안에 모델 존재해야함 (detector.py 에서 조정)
 videos 안에 sample1.avi / sample2.avi 있어야 함
+
+vs build tool 에 c관련 도구 있어야함.
 
 v1.0 다중 카메라 구현 
 이후 개발 방향

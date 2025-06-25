@@ -25,7 +25,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         if config is None:
             self.config = {
-                "confidence": 0.6,
+                "confidence": 0.55,
                 "cam1_mute": True,
                 "cam2_mute": True,
                 "show_labels": False
@@ -575,7 +575,7 @@ class MainWindow(QMainWindow):
             lv.setContentsMargins(0, 0, 0, 0)
             lv.setFixedWidth(vw_size[0])
             # lv.setStyleSheet('background-color: white;')
-            lv.setFixedHeight(self.size.height() - (vw_size[1] + 130 + 40 + 20))
+            lv.setFixedHeight(self.size.height() - (vw_size[1] + 130 + 40 + 20 + 40))
             # lv.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
             
             
